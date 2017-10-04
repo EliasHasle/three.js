@@ -1,10 +1,8 @@
 varying vec3 vWorldPosition;
 
-#include <common>
-
 void main() {
 
-	vWorldPosition = transformDirection( position, modelMatrix );
+	vWorldPosition = (modelMatrix*vec4(position, 1.0)).xyz;
 
 	#include <begin_vertex>
 	#include <project_vertex>
