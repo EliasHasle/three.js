@@ -374,7 +374,10 @@ THREE.Vector3.prototype = {
 
 			if ( matrix === undefined ) matrix = new THREE.Matrix4();
 
-			matrix.multiplyMatrices( camera.matrixWorld, matrix.getInverse( camera.projectionMatrix ) );
+			if (camera.inverseProjectionMatrix === undefined) {
+				camera.inverseProjectionMatrix = new THREE.Matrix4().getInverse( camera.projectionMatrix );
+			}
+			matrix.multiplyMatrices( camera.matrixWorld, camera.inverseProjectionMatrix);
 			return this.applyProjection( matrix );
 
 		};
