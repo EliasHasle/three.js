@@ -3,8 +3,9 @@ var startX, startY;
 
 var scene, camera, renderer, loader, sceneId;
 
-importScripts( '../../../build/three.js' );
-
+importScripts( '../../../build/three.min.js' );
+importScripts( '../OTNode.js' );
+importScripts( '../Mesh_octree_injection.js' );
 
 self.onmessage = function ( e ) {
 
