@@ -1,17 +1,17 @@
+import { Vector3 } from './Vector3.js';
+
 /**
  * @author bhouston / http://clara.io
  */
 
-THREE.Ray = function ( origin, direction ) {
+function Ray( origin, direction ) {
 
-	this.origin = ( origin !== undefined ) ? origin : new THREE.Vector3();
-	this.direction = ( direction !== undefined ) ? direction : new THREE.Vector3();
+	this.origin = ( origin !== undefined ) ? origin : new Vector3();
+	this.direction = ( direction !== undefined ) ? direction : new Vector3();
 
-};
+}
 
-THREE.Ray.prototype = {
-
-	constructor: THREE.Ray,
+Object.assign( Ray.prototype, {
 
 	set: function ( origin, direction ) {
 
@@ -37,11 +37,16 @@ THREE.Ray.prototype = {
 
 	},
 
-	at: function ( t, optionalTarget ) {
+	at: function ( t, target ) {
 
-		var result = optionalTarget || new THREE.Vector3();
+		if ( target === undefined ) {
 
-		return result.copy( this.direction ).multiplyScalar( t ).add( this.origin );
+			console.warn( 'THREE.Ray: .at() target is now required' );
+			target = new Vector3();
+
+		}
+
+		return target.copy( this.direction ).multiplyScalar( t ).add( this.origin );
 
 	},
 
@@ -49,13 +54,15 @@ THREE.Ray.prototype = {
 
 		this.direction.copy( v ).sub( this.origin ).normalize();
 
+		return this;
+
 	},
 
 	recast: function () {
 
-		var v1 = new THREE.Vector3();
+		var v1 = new Vector3();
 
-		return function ( t ) {
+		return function recast( t ) {
 
 			this.origin.copy( this.at( t, v1 ) );
 
@@ -65,19 +72,26 @@ THREE.Ray.prototype = {
 
 	}(),
 
-	closestPointToPoint: function ( point, optionalTarget ) {
+	closestPointToPoint: function ( point, target ) {
 
-		var result = optionalTarget || new THREE.Vector3();
-		result.subVectors( point, this.origin );
-		var directionDistance = result.dot( this.direction );
+		if ( target === undefined ) {
 
-		if ( directionDistance < 0 ) {
-
-			return result.copy( this.origin );
+			console.warn( 'THREE.Ray: .closestPointToPoint() target is now required' );
+			target = new Vector3();
 
 		}
 
-		return result.copy( this.direction ).multiplyScalar( directionDistance ).add( this.origin );
+		target.subVectors( point, this.origin );
+
+		var directionDistance = target.dot( this.direction );
+
+		if ( directionDistance < 0 ) {
+
+			return target.copy( this.origin );
+
+		}
+
+		return target.copy( this.direction ).multiplyScalar( directionDistance ).add( this.origin );
 
 	},
 
@@ -89,9 +103,9 @@ THREE.Ray.prototype = {
 
 	distanceSqToPoint: function () {
 
-		var v1 = new THREE.Vector3();
+		var v1 = new Vector3();
 
-		return function ( point ) {
+		return function distanceSqToPoint( point ) {
 
 			var directionDistance = v1.subVectors( point, this.origin ).dot( this.direction );
 
@@ -113,13 +127,13 @@ THREE.Ray.prototype = {
 
 	distanceSqToSegment: function () {
 
-		var segCenter = new THREE.Vector3();
-		var segDir = new THREE.Vector3();
-		var diff = new THREE.Vector3();
+		var segCenter = new Vector3();
+		var segDir = new Vector3();
+		var diff = new Vector3();
 
-		return function ( v0, v1, optionalPointOnRay, optionalPointOnSegment ) {
+		return function distanceSqToSegment( v0, v1, optionalPointOnRay, optionalPointOnSegment ) {
 
-			// from http://www.geometrictools.com/LibMathematics/Distance/Wm5DistRay3Segment3.cpp
+			// from http://www.geometrictools.com/GTEngine/Include/Mathematics/GteDistRaySegment.h
 			// It returns the min distance between the ray and the segment
 			// defined by v0 and v1
 			// It can also set two optional targets :
@@ -240,9 +254,9 @@ THREE.Ray.prototype = {
 
 	intersectSphere: function () {
 
-		var v1 = new THREE.Vector3();
+		var v1 = new Vector3();
 
-		return function ( sphere, optionalTarget ) {
+		return function intersectSphere( sphere, target ) {
 
 			v1.subVectors( sphere.center, this.origin );
 			var tca = v1.dot( this.direction );
@@ -265,18 +279,18 @@ THREE.Ray.prototype = {
 			// test to see if t0 is behind the ray:
 			// if it is, the ray is inside the sphere, so return the second exit point scaled by t1,
 			// in order to always return an intersect point that is in front of the ray.
-			if ( t0 < 0 ) return this.at( t1, optionalTarget );
+			if ( t0 < 0 ) return this.at( t1, target );
 
 			// else t0 is in front of the ray, so return the first collision point scaled by t0
-			return this.at( t0, optionalTarget );
+			return this.at( t0, target );
 
-		}
+		};
 
 	}(),
 
 	intersectsSphere: function ( sphere ) {
 
-		return this.distanceToPoint( sphere.center ) <= sphere.radius;
+		return this.distanceSqToPoint( sphere.center ) <= ( sphere.radius * sphere.radius );
 
 	},
 
@@ -303,11 +317,11 @@ THREE.Ray.prototype = {
 
 		// Return if the ray never intersects the plane
 
-		return t >= 0 ? t :  null;
+		return t >= 0 ? t : null;
 
 	},
 
-	intersectPlane: function ( plane, optionalTarget ) {
+	intersectPlane: function ( plane, target ) {
 
 		var t = this.distanceToPlane( plane );
 
@@ -317,11 +331,9 @@ THREE.Ray.prototype = {
 
 		}
 
-		return this.at( t, optionalTarget );
+		return this.at( t, target );
 
 	},
-
-
 
 	intersectsPlane: function ( plane ) {
 
@@ -349,7 +361,7 @@ THREE.Ray.prototype = {
 
 	},
 
-	intersectBox: function ( box, optionalTarget ) {
+	intersectBox: function ( box, target ) {
 
 		var tmin, tmax, tymin, tymax, tzmin, tzmax;
 
@@ -414,15 +426,15 @@ THREE.Ray.prototype = {
 
 		if ( tmax < 0 ) return null;
 
-		return this.at( tmin >= 0 ? tmin : tmax, optionalTarget );
+		return this.at( tmin >= 0 ? tmin : tmax, target );
 
 	},
 
 	intersectsBox: ( function () {
 
-		var v = new THREE.Vector3();
+		var v = new Vector3();
 
-		return function ( box ) {
+		return function intersectsBox( box ) {
 
 			return this.intersectBox( box, v ) !== null;
 
@@ -433,14 +445,14 @@ THREE.Ray.prototype = {
 	intersectTriangle: function () {
 
 		// Compute the offset origin, edges, and normal.
-		var diff = new THREE.Vector3();
-		var edge1 = new THREE.Vector3();
-		var edge2 = new THREE.Vector3();
-		var normal = new THREE.Vector3();
+		var diff = new Vector3();
+		var edge1 = new Vector3();
+		var edge2 = new Vector3();
+		var normal = new Vector3();
 
-		return function ( a, b, c, backfaceCulling, optionalTarget ) {
+		return function intersectTriangle( a, b, c, backfaceCulling, target ) {
 
-			// from http://www.geometrictools.com/LibMathematics/Intersection/Wm5IntrRay3Triangle3.cpp
+			// from http://www.geometrictools.com/GTEngine/Include/Mathematics/GteIntrRay3Triangle3.h
 
 			edge1.subVectors( b, a );
 			edge2.subVectors( c, a );
@@ -507,7 +519,7 @@ THREE.Ray.prototype = {
 			}
 
 			// Ray intersects triangle.
-			return this.at( QdN / DdN, optionalTarget );
+			return this.at( QdN / DdN, target );
 
 		};
 
@@ -515,10 +527,8 @@ THREE.Ray.prototype = {
 
 	applyMatrix4: function ( matrix4 ) {
 
-		this.direction.add( this.origin ).applyMatrix4( matrix4 );
 		this.origin.applyMatrix4( matrix4 );
-		this.direction.sub( this.origin );
-		this.direction.normalize();
+		this.direction.transformDirection( matrix4 );
 
 		return this;
 
@@ -530,4 +540,7 @@ THREE.Ray.prototype = {
 
 	}
 
-};
+} );
+
+
+export { Ray };

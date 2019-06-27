@@ -4,17 +4,12 @@
 		<title>three.js webgl - materials - wireframe</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<style>
-			body {
-				margin: 0px;
-				background-color: #000000;
-				overflow: hidden;
-			}
-		</style>
+		<link type="text/css" rel="stylesheet" href="main.css">
 	</head>
 	<body>
-
-		<script src="../build/three.min.js"></script>
+		<div id="info">
+			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - webgl wireframe demo
+		</div>
 
 		<script type="x-shader/x-vertex" id="vertexShader">
 
@@ -50,7 +45,9 @@
 
 		</script>
 
-		<script>
+		<script type="module">
+
+			import * as THREE from '../build/three.module.js';
 
 			var camera, scene, renderer;
 
@@ -70,16 +67,17 @@
 
 				//
 
-				geometry = new THREE.BoxGeometry( size, size, size );
+				geometry = new THREE.BoxBufferGeometry( size, size, size );
 				material = new THREE.MeshBasicMaterial( { wireframe: true } );
 
 				mesh = new THREE.Mesh( geometry, material );
-				mesh.position.x = -150;
+				mesh.position.x = - 150;
 				scene.add( mesh );
 
 				//
 
-				geometry = new THREE.BufferGeometry().fromGeometry( new THREE.BoxGeometry( size, size, size ) );
+				geometry = new THREE.BoxBufferGeometry( size, size, size );
+				geometry = geometry.toNonIndexed();
 
 				setupAttributes( geometry );
 
@@ -97,7 +95,8 @@
 
 				//
 
-				geometry = new THREE.BufferGeometry().fromGeometry( new THREE.SphereGeometry( size / 2, 32, 16 ) );
+				geometry = new THREE.SphereBufferGeometry( size / 2, 32, 16 );
+				geometry = geometry.toNonIndexed();
 
 				setupAttributes( geometry );
 
@@ -110,7 +109,7 @@
 				material.extensions.derivatives = true;
 
 				mesh = new THREE.Mesh( geometry, material );
-				mesh.position.x = -150;
+				mesh.position.x = - 150;
 				scene.add( mesh );
 
 				// renderer

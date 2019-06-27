@@ -1,8 +1,8 @@
 /**
-* @author mrdoob / http://mrdoob.com/
-*/
+ * @author mrdoob / http://mrdoob.com/
+ */
 
-THREE.WebGLBufferRenderer = function ( _gl, extensions, _infoRender ) {
+function WebGLBufferRenderer( gl, extensions, info, capabilities ) {
 
 	var mode;
 
@@ -14,51 +14,46 @@ THREE.WebGLBufferRenderer = function ( _gl, extensions, _infoRender ) {
 
 	function render( start, count ) {
 
-		_gl.drawArrays( mode, start, count );
+		gl.drawArrays( mode, start, count );
 
-		_infoRender.calls ++;
-		_infoRender.vertices += count;
-		if ( mode === _gl.TRIANGLES ) _infoRender.faces += count / 3;
+		info.update( count, mode );
 
 	}
 
-	function renderInstances( geometry ) {
+	function renderInstances( geometry, start, count ) {
 
-		var extension = extensions.get( 'ANGLE_instanced_arrays' );
+		var extension;
 
-		if ( extension === null ) {
+		if ( capabilities.isWebGL2 ) {
 
-			console.error( 'THREE.WebGLBufferRenderer: using THREE.InstancedBufferGeometry but hardware does not support extension ANGLE_instanced_arrays.' );
-			return;
-
-		}
-
-		var position = geometry.attributes.position;
-
-		var count = 0;
-
-		if ( position instanceof THREE.InterleavedBufferAttribute ) {
-
-			count = position.data.count;
-
-			extension.drawArraysInstancedANGLE( mode, 0, count, geometry.maxInstancedCount );
+			extension = gl;
 
 		} else {
 
-			count = position.count;
+			extension = extensions.get( 'ANGLE_instanced_arrays' );
 
-			extension.drawArraysInstancedANGLE( mode, 0, count, geometry.maxInstancedCount );
+			if ( extension === null ) {
+
+				console.error( 'THREE.WebGLBufferRenderer: using THREE.InstancedBufferGeometry but hardware does not support extension ANGLE_instanced_arrays.' );
+				return;
+
+			}
 
 		}
 
-		_infoRender.calls ++;
-		_infoRender.vertices += count * geometry.maxInstancedCount;
-		if ( mode === _gl.TRIANGLES ) _infoRender.faces += geometry.maxInstancedCount * count / 3;
+		extension[ capabilities.isWebGL2 ? 'drawArraysInstanced' : 'drawArraysInstancedANGLE' ]( mode, start, count, geometry.maxInstancedCount );
+
+		info.update( count, mode, geometry.maxInstancedCount );
 
 	}
+
+	//
 
 	this.setMode = setMode;
 	this.render = render;
 	this.renderInstances = renderInstances;
 
-};
+}
+
+
+export { WebGLBufferRenderer };

@@ -2,42 +2,107 @@
  * @author sunag / http://www.sunag.com.br/
  */
 
-THREE.CubeTextureNode = function( value, coord, bias ) {
+import { InputNode } from '../core/InputNode.js';
+import { ReflectNode } from '../accessors/ReflectNode.js';
+import { ColorSpaceNode } from '../utils/ColorSpaceNode.js';
+import { ExpressionNode } from '../core/ExpressionNode.js';
 
-	THREE.InputNode.call( this, 'v4' );
+function CubeTextureNode( value, uv, bias ) {
+
+	InputNode.call( this, 'v4', { shared: true } );
 
 	this.value = value;
-	this.coord = coord || new THREE.ReflectNode();
+	this.uv = uv || new ReflectNode();
 	this.bias = bias;
 
+}
+
+CubeTextureNode.prototype = Object.create( InputNode.prototype );
+CubeTextureNode.prototype.constructor = CubeTextureNode;
+CubeTextureNode.prototype.nodeType = "CubeTexture";
+
+CubeTextureNode.prototype.getTexture = function ( builder, output ) {
+
+	return InputNode.prototype.generate.call( this, builder, output, this.value.uuid, 'tc' );
+
 };
 
-THREE.CubeTextureNode.prototype = Object.create( THREE.InputNode.prototype );
-THREE.CubeTextureNode.prototype.constructor = THREE.CubeTextureNode;
+CubeTextureNode.prototype.generate = function ( builder, output ) {
 
-THREE.CubeTextureNode.prototype.getTexture = function( builder, output ) {
+	if ( output === 'samplerCube' ) {
 
-	return THREE.InputNode.prototype.generate.call( this, builder, output, this.value.uuid, 't' );
+		return this.getTexture( builder, output );
 
-};
-
-THREE.CubeTextureNode.prototype.generate = function( builder, output ) {
+	}
 
 	var cubetex = this.getTexture( builder, output );
-	var coord = this.coord.build( builder, 'v3' );
-	var bias = this.bias ? this.bias.build( builder, 'fv1' ) : undefined;
+	var uv = this.uv.build( builder, 'v3' );
+	var bias = this.bias ? this.bias.build( builder, 'f' ) : undefined;
 
-	if ( bias == undefined && builder.requires.bias ) {
+	if ( bias === undefined && builder.context.bias ) {
 
-		bias = builder.requires.bias.build( builder, 'fv1' );
+		bias = new builder.context.bias( this ).build( builder, 'f' );
 
 	}
 
 	var code;
 
-	if ( bias ) code = 'textureCube(' + cubetex + ',' + coord + ',' + bias + ')';
-	else code = 'textureCube(' + cubetex + ',' + coord + ')';
+	if ( bias ) code = 'texCubeBias( ' + cubetex + ', ' + uv + ', ' + bias + ' )';
+	else code = 'texCube( ' + cubetex + ', ' + uv + ' )';
 
-	return builder.format( code, this.type, output );
+	// add a custom context for fix incompatibility with the core
+	// include ColorSpace function only for vertex shader (in fragment shader color space functions is added automatically by core)
+	// this should be removed in the future
+	// context.include =: is used to include or not functions if used FunctionNode
+	// context.ignoreCache =: not create variables temp nodeT0..9 to optimize the code
+	var context = { include: builder.isShader( 'vertex' ), ignoreCache: true };
+	var outputType = this.getType( builder );
+
+	builder.addContext( context );
+
+	this.colorSpace = this.colorSpace || new ColorSpaceNode( new ExpressionNode('', outputType ) );
+	this.colorSpace.fromEncoding( builder.getTextureEncodingFromMap( this.value ) );
+	this.colorSpace.input.parse( code );
+
+	code = this.colorSpace.build( builder, outputType );
+
+	// end custom context
+
+	builder.removeContext();
+
+	return builder.format( code, outputType, output );
 
 };
+
+CubeTextureNode.prototype.copy = function ( source ) {
+
+	InputNode.prototype.copy.call( this, source );
+
+	if ( source.value ) this.value = source.value;
+
+	this.uv = source.uv;
+
+	if ( source.bias ) this.bias = source.bias;
+
+};
+
+CubeTextureNode.prototype.toJSON = function ( meta ) {
+
+	var data = this.getJSONNode( meta );
+
+	if ( ! data ) {
+
+		data = this.createJSONNode( meta );
+
+		data.value = this.value.uuid;
+		data.uv = this.uv.toJSON( meta ).uuid;
+
+		if ( this.bias ) data.bias = this.bias.toJSON( meta ).uuid;
+
+	}
+
+	return data;
+
+};
+
+export { CubeTextureNode };

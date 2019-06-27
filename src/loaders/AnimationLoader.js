@@ -1,22 +1,25 @@
+import { AnimationClip } from '../animation/AnimationClip.js';
+import { FileLoader } from './FileLoader.js';
+import { DefaultLoadingManager } from './LoadingManager.js';
+
 /**
  * @author bhouston / http://clara.io/
  */
 
-THREE.AnimationLoader = function ( manager ) {
+function AnimationLoader( manager ) {
 
-	this.manager = ( manager !== undefined ) ? manager : THREE.DefaultLoadingManager;
+	this.manager = ( manager !== undefined ) ? manager : DefaultLoadingManager;
 
-};
+}
 
-THREE.AnimationLoader.prototype = {
-
-	constructor: THREE.AnimationLoader,
+Object.assign( AnimationLoader.prototype, {
 
 	load: function ( url, onLoad, onProgress, onError ) {
 
 		var scope = this;
 
-		var loader = new THREE.XHRLoader( scope.manager );
+		var loader = new FileLoader( scope.manager );
+		loader.setPath( scope.path );
 		loader.load( url, function ( text ) {
 
 			onLoad( scope.parse( JSON.parse( text ) ) );
@@ -25,20 +28,30 @@ THREE.AnimationLoader.prototype = {
 
 	},
 
-	parse: function ( json, onLoad ) {
+	parse: function ( json ) {
 
 		var animations = [];
 
 		for ( var i = 0; i < json.length; i ++ ) {
 
-			var clip = THREE.AnimationClip.parse( json[ i ] );
+			var clip = AnimationClip.parse( json[ i ] );
 
 			animations.push( clip );
 
 		}
 
-		onLoad( animations );
+		return animations;
+
+	},
+
+	setPath: function ( value ) {
+
+		this.path = value;
+		return this;
 
 	}
 
-};
+} );
+
+
+export { AnimationLoader };

@@ -1,3 +1,6 @@
+import { Path } from './Path.js';
+import { _Math } from '../../math/Math.js';
+
 /**
  * @author zz85 / http://www.lab4games.net/zz85/blog
  * Defines a 2d shape plane using paths.
@@ -9,65 +12,104 @@
 // STEP 3a - Extract points from each shape, turn to vertices
 // STEP 3b - Triangulate each shape, add faces.
 
-THREE.Shape = function () {
+function Shape( points ) {
 
-	THREE.Path.apply( this, arguments );
+	Path.call( this, points );
+
+	this.uuid = _Math.generateUUID();
+
+	this.type = 'Shape';
 
 	this.holes = [];
 
-};
+}
 
-THREE.Shape.prototype = Object.create( THREE.Path.prototype );
-THREE.Shape.prototype.constructor = THREE.Shape;
+Shape.prototype = Object.assign( Object.create( Path.prototype ), {
 
-// Convenience method to return ExtrudeGeometry
+	constructor: Shape,
 
-THREE.Shape.prototype.extrude = function ( options ) {
+	getPointsHoles: function ( divisions ) {
 
-	return new THREE.ExtrudeGeometry( this, options );
+		var holesPts = [];
 
-};
+		for ( var i = 0, l = this.holes.length; i < l; i ++ ) {
 
-// Convenience method to return ShapeGeometry
+			holesPts[ i ] = this.holes[ i ].getPoints( divisions );
 
-THREE.Shape.prototype.makeGeometry = function ( options ) {
+		}
 
-	return new THREE.ShapeGeometry( this, options );
+		return holesPts;
 
-};
+	},
 
-// Get points of holes
+	// get points of shape and holes (keypoints based on segments parameter)
 
-THREE.Shape.prototype.getPointsHoles = function ( divisions ) {
+	extractPoints: function ( divisions ) {
 
-	var holesPts = [];
+		return {
 
-	for ( var i = 0, l = this.holes.length; i < l; i ++ ) {
+			shape: this.getPoints( divisions ),
+			holes: this.getPointsHoles( divisions )
 
-		holesPts[ i ] = this.holes[ i ].getPoints( divisions );
+		};
+
+	},
+
+	copy: function ( source ) {
+
+		Path.prototype.copy.call( this, source );
+
+		this.holes = [];
+
+		for ( var i = 0, l = source.holes.length; i < l; i ++ ) {
+
+			var hole = source.holes[ i ];
+
+			this.holes.push( hole.clone() );
+
+		}
+
+		return this;
+
+	},
+
+	toJSON: function () {
+
+		var data = Path.prototype.toJSON.call( this );
+
+		data.uuid = this.uuid;
+		data.holes = [];
+
+		for ( var i = 0, l = this.holes.length; i < l; i ++ ) {
+
+			var hole = this.holes[ i ];
+			data.holes.push( hole.toJSON() );
+
+		}
+
+		return data;
+
+	},
+
+	fromJSON: function ( json ) {
+
+		Path.prototype.fromJSON.call( this, json );
+
+		this.uuid = json.uuid;
+		this.holes = [];
+
+		for ( var i = 0, l = json.holes.length; i < l; i ++ ) {
+
+			var hole = json.holes[ i ];
+			this.holes.push( new Path().fromJSON( hole ) );
+
+		}
+
+		return this;
 
 	}
 
-	return holesPts;
-
-};
+} );
 
 
-// Get points of shape and holes (keypoints based on segments parameter)
-
-THREE.Shape.prototype.extractAllPoints = function ( divisions ) {
-
-	return {
-
-		shape: this.getPoints( divisions ),
-		holes: this.getPointsHoles( divisions )
-
-	};
-
-};
-
-THREE.Shape.prototype.extractPoints = function ( divisions ) {
-
-	return this.extractAllPoints( divisions );
-
-};
+export { Shape };
