@@ -302,7 +302,7 @@ THREE.Mesh.prototype.raycast = ( function () {
 		//uvs = geometry.getAttribute("uv").array;
 		
 		while (otQueue.length > 0) {
-			let otn = otQueue.shift();
+			let otn = otQueue.pop();
 			if (!ray.intersectsBox(otn.bb)) continue;
 			
 			if (otn.content !== null) {
