@@ -8367,7 +8367,7 @@ Material.prototype = Object.assign( Object.create( EventDispatcher.prototype ), 
 
 	isMaterial: true,
 
-	onBeforeCompile: function () {},
+	onBeforeCompile: null,
 
 	setValues: function ( values ) {
 
@@ -18276,7 +18276,11 @@ function WebGLPrograms( renderer, extensions, capabilities ) {
 
 		}
 
-		array.push( material.onBeforeCompile.toString() );
+		if ( material.onBeforeCompile ) {
+
+			array.push( material.onBeforeCompile.toString() );
+
+		}
 
 		array.push( renderer.gammaOutput );
 
@@ -23870,13 +23874,21 @@ function WebGLRenderer( parameters ) {
 
 					for ( var i = 0; i < object.material.length; i ++ ) {
 
-						initMaterial( object.material[ i ], scene.fog, object );
+						if ( object.material[ i ].needsUpdate ) {
+
+							initMaterial( object.material[ i ], scene.fog, object );
+
+						}
 
 					}
 
 				} else {
 
-					initMaterial( object.material, scene.fog, object );
+					if ( object.material.needsUpdate ) {
+
+						initMaterial( object.material, scene.fog, object );
+
+					}
 
 				}
 
@@ -24338,10 +24350,14 @@ function WebGLRenderer( parameters ) {
 
 			}
 
-			material.onBeforeCompile( materialProperties.shader, _this );
+			if ( material.onBeforeCompile ) {
 
-			// Computing code again as onBeforeCompile may have changed the shaders
-			code = programCache.getProgramCode( material, parameters );
+				material.onBeforeCompile( materialProperties.shader, _this );
+
+				// Computing code again as onBeforeCompile may have changed the shaders
+				code = programCache.getProgramCode( material, parameters );
+
+			}
 
 			program = programCache.acquireProgram( material, materialProperties.shader, parameters, code );
 
