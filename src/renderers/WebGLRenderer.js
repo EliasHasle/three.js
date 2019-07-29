@@ -1042,13 +1042,21 @@ function WebGLRenderer( parameters ) {
 
 					for ( var i = 0; i < object.material.length; i ++ ) {
 
-						initMaterial( object.material[ i ], scene.fog, object );
+						if ( object.material[ i ].needsUpdate ) {
+
+							initMaterial( object.material[ i ], scene.fog, object );
+
+						}
 
 					}
 
 				} else {
 
-					initMaterial( object.material, scene.fog, object );
+					if ( object.material.needsUpdate ) {
+
+						initMaterial( object.material, scene.fog, object );
+
+					}
 
 				}
 
