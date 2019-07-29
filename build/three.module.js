@@ -23877,6 +23877,7 @@ function WebGLRenderer( parameters ) {
 						if ( object.material[ i ].needsUpdate ) {
 
 							initMaterial( object.material[ i ], scene.fog, object );
+							object.material[ i ].needsUpdate = false;
 
 						}
 
@@ -23887,6 +23888,7 @@ function WebGLRenderer( parameters ) {
 					if ( object.material.needsUpdate ) {
 
 						initMaterial( object.material, scene.fog, object );
+						object.material.needsUpdate = false;
 
 					}
 
