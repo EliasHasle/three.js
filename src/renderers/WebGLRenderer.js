@@ -1038,21 +1038,21 @@ function WebGLRenderer( parameters ) {
 					for ( var i = 0; i < object.material.length; i ++ ) {
 
 						if ( object.material[ i ].needsUpdate ) {
-							
+
 							initMaterial( object.material[ i ], scene.fog, object );
-							
+
 						}
 
 					}
 
 				} else {
-					
+
 					if ( object.material.needsUpdate ) {
-						
+
 						initMaterial( object.material, scene.fog, object );
-						
+
 					}
-					
+
 				}
 
 			}
