@@ -323,8 +323,8 @@ var list = {
 			},
 
 			"Scenes": {
-				"Fog": "api/en/scenes/Fog",
-				"FogExp2": "api/en/scenes/FogExp2",
+				"RangeFog": "api/en/scenes/RangeFog",
+				"DensityFog": "api/en/scenes/DensityFog",
 				"Scene": "api/en/scenes/Scene"
 			},
 
@@ -772,8 +772,8 @@ var list = {
 			},
 
 			"场景": {
-				"Fog": "api/zh/scenes/Fog",
-				"FogExp2": "api/zh/scenes/FogExp2",
+				"RangeFog": "api/zh/scenes/RangeFog",
+				"DensityFog": "api/zh/scenes/DensityFog",
 				"Scene": "api/zh/scenes/Scene"
 			},
 
