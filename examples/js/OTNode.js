@@ -11,6 +11,22 @@ class OTNode {
 		this.parent = null;
 		this.content = null;
 	}
+	//Method to clone
+	clone() {
+		let otn = new OTNode(this.bb);
+		otn.content = this.content;
+
+		if (this.children !== null) {
+			otn.children = [];
+			for (let c of this.children) {
+				let cn = c.clone();
+				cn.parent = otn;
+				otn.children.push(cn);
+			}
+		}
+		
+		return otn;
+	}
 	locateBB = function(){
 		var center = new THREE.Vector3();
 		var size = new THREE.Vector3();
@@ -65,21 +81,21 @@ class OTNode {
 		let otnode = this.locateBB(bb, minsize);
 		if (otnode.content===null) otnode.content = [];
 		otnode.content.push(object);
-	}
-	//Method to clone
-	clone() {
-		let otn = new OTNode(this.bb);
-		otn.content = this.content;
-
-		if (this.children !== null) {
-			otn.children = [];
-			for (let c of this.children) {
-				let cn = c.clone();
-				cn.parent = otn;
-				otn.children.push(cn);
+	},
+	getContentsOfIntersectedCells(boxIntersector, res=[]) {
+		if (boxIntersector.intersectsBox3(this.bb)) {
+		
+			if (this.contents !== null) {
+				res.push(...this.contents);
+			}
+			
+			if (this.children !== null) {
+				for (let child of this.children) {
+					child.getContentsOfIntersectedCells(boxintersector, res);
+				}
 			}
 		}
 		
-		return otn;
+		return res;
 	}
 }
