@@ -1,5 +1,7 @@
 //Depends on OTNode.js.
 
+"use strict";
+
 THREE.Mesh.prototype.raycast = ( function () {
 
 	var inverseMatrix = new THREE.Matrix4();
