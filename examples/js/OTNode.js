@@ -81,7 +81,7 @@ class OTNode {
 		let otnode = this.locateBB(bb, minsize);
 		if (otnode.content===null) otnode.content = [];
 		otnode.content.push(object);
-	},
+	}
 	getContentsOfIntersectedCells(boxIntersector, res=[]) {
 		if (boxIntersector.intersectsBox3(this.bb)) {
 		
