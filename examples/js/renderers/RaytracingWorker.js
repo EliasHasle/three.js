@@ -530,6 +530,13 @@ THREE.RaytracingRendererWorker = function () {
 				};
 
 			}
+			
+			//INVESTIGATION:
+			/*var logged = false;
+			if (!logged && object.isMesh) {
+				console.log(object.raycast.toString());
+				logged = true;
+			}*/
 
 			var _object = cache[ object.id ];
 

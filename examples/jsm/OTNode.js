@@ -97,3 +97,5 @@ class OTNode {
 		return res;
 	}
 }
+
+export {OTNode};

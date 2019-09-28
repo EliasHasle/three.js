@@ -1,4 +1,5 @@
-//Depends on OTNode
+import * as THREE from "../../build/three.module.js";
+import {OTNode} from "./OTNode.js";
 
 THREE.Mesh.prototype.raycast = ( function () {
 
