@@ -26,7 +26,7 @@ export class RangeFog implements IFog {
 	 */
 	far: number;
 
-	readonly isFog: true;
+	readonly isRangeFog: true;
 
 	clone(): this;
 	toJSON(): any;

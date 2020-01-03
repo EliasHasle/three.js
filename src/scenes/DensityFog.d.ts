@@ -22,6 +22,8 @@ export class DensityFog implements IFog {
 	 */
 	squared: boolean;
 
+	readonly isDensityFog: true;
+
 	clone(): this;
 	toJSON(): any;
 
