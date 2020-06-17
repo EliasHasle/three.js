@@ -1,3 +1,4 @@
+console.warn( "THREE.PointerLockControls: As part of the transition to ES6 Modules, the files in 'examples/js' were deprecated in May 2020 (r117) and will be deleted in December 2020 (r124). You can find more information about developing using ES6 Modules in https://threejs.org/docs/index.html#manual/en/introduction/Import-via-modules." );
 /**
  * @author mrdoob / http://mrdoob.com/
  * @author Mugen87 / https://github.com/Mugen87
@@ -5,7 +6,14 @@
 
 THREE.PointerLockControls = function ( camera, domElement ) {
 
-	this.domElement = domElement || document.body;
+	if ( domElement === undefined ) {
+
+		console.warn( 'THREE.PointerLockControls: The second parameter "domElement" is now mandatory.' );
+		domElement = document.body;
+
+	}
+
+	this.domElement = domElement;
 	this.isLocked = false;
 
 	//
@@ -22,7 +30,7 @@ THREE.PointerLockControls = function ( camera, domElement ) {
 
 	var PI_2 = Math.PI / 2;
 
-	var vec = new Vector3();
+	var vec = new THREE.Vector3();
 
 	function onMouseMove( event ) {
 

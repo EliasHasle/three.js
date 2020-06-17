@@ -7,14 +7,13 @@ import { Loader } from './Loader.js';
  * @author Nikos M. / https://github.com/foo123/
  *
  * Abstract Base class to load generic binary textures formats (rgbe, hdr, ...)
+ *
+ * Sub classes have to implement the parse() method which will be used in load().
  */
 
 function DataTextureLoader( manager ) {
 
 	Loader.call( this, manager );
-
-	// override in sub classes
-	this._parser = null;
 
 }
 
@@ -33,7 +32,7 @@ DataTextureLoader.prototype = Object.assign( Object.create( Loader.prototype ), 
 		loader.setPath( this.path );
 		loader.load( url, function ( buffer ) {
 
-			var texData = scope._parser( buffer );
+			var texData = scope.parse( buffer );
 
 			if ( ! texData ) return;
 
@@ -53,7 +52,7 @@ DataTextureLoader.prototype = Object.assign( Object.create( Loader.prototype ), 
 			texture.wrapT = texData.wrapT !== undefined ? texData.wrapT : ClampToEdgeWrapping;
 
 			texture.magFilter = texData.magFilter !== undefined ? texData.magFilter : LinearFilter;
-			texture.minFilter = texData.minFilter !== undefined ? texData.minFilter : LinearMipmapLinearFilter;
+			texture.minFilter = texData.minFilter !== undefined ? texData.minFilter : LinearFilter;
 
 			texture.anisotropy = texData.anisotropy !== undefined ? texData.anisotropy : 1;
 
@@ -62,6 +61,7 @@ DataTextureLoader.prototype = Object.assign( Object.create( Loader.prototype ), 
 				texture.format = texData.format;
 
 			}
+
 			if ( texData.type !== undefined ) {
 
 				texture.type = texData.type;
@@ -71,6 +71,7 @@ DataTextureLoader.prototype = Object.assign( Object.create( Loader.prototype ), 
 			if ( texData.mipmaps !== undefined ) {
 
 				texture.mipmaps = texData.mipmaps;
+				texture.minFilter = LinearMipmapLinearFilter; // presumably...
 
 			}
 

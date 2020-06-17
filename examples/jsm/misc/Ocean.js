@@ -43,6 +43,7 @@ var Ocean = function ( renderer, camera, scene, options ) {
 		return value !== undefined ? value : defaultValue;
 
 	}
+
 	options = options || {};
 	this.clearColor = optionalParameter( options.CLEAR_COLOR, [ 1.0, 1.0, 1.0, 0.0 ] );
 	this.geometryOrigin = optionalParameter( options.GEOMETRY_ORIGIN, [ - 1000.0, - 1000.0 ] );
@@ -276,7 +277,6 @@ Ocean.prototype.generateSeedPhaseTexture = function () {
 	this.pingPhaseTexture.wrapS = ClampToEdgeWrapping;
 	this.pingPhaseTexture.wrapT = ClampToEdgeWrapping;
 	this.pingPhaseTexture.type = FloatType;
-	this.pingPhaseTexture.needsUpdate = true;
 
 };
 
@@ -296,6 +296,7 @@ Ocean.prototype.renderWavePhase = function () {
 
 	this.scene.overrideMaterial = this.materialPhase;
 	this.screenQuad.material = this.materialPhase;
+
 	if ( this.initial ) {
 
 		this.materialPhase.uniforms.u_phases.value = this.pingPhaseTexture;
@@ -306,6 +307,7 @@ Ocean.prototype.renderWavePhase = function () {
 		this.materialPhase.uniforms.u_phases.value = this.pingPhase ? this.pingPhaseFramebuffer.texture : this.pongPhaseFramebuffer.texture;
 
 	}
+
 	this.materialPhase.uniforms.u_deltaTime.value = this.deltaTime;
 	this.materialPhase.uniforms.u_size.value = this.size;
 	this.renderer.setRenderTarget( this.pingPhase ? this.pongPhaseFramebuffer : this.pingPhaseFramebuffer );
@@ -363,7 +365,9 @@ Ocean.prototype.renderSpectrumFFT = function () {
 		}
 
 	}
+
 	this.scene.overrideMaterial = this.materialOceanVertical;
+
 	for ( var i = iterations; i < iterations * 2; i ++ ) {
 
 		if ( i === iterations * 2 - 1 ) {

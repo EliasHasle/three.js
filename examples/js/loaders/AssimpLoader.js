@@ -1,24 +1,23 @@
+console.warn( "THREE.AssimpLoader: As part of the transition to ES6 Modules, the files in 'examples/js' were deprecated in May 2020 (r117) and will be deleted in December 2020 (r124). You can find more information about developing using ES6 Modules in https://threejs.org/docs/index.html#manual/en/introduction/Import-via-modules." );
 /**
  * @author Virtulous / https://virtulo.us/
  */
 
 THREE.AssimpLoader = function ( manager ) {
 
-	this.manager = ( manager !== undefined ) ? manager : THREE.DefaultLoadingManager;
+	THREE.Loader.call( this, manager );
 
 };
 
-THREE.AssimpLoader.prototype = {
+THREE.AssimpLoader.prototype = Object.assign( Object.create( THREE.Loader.prototype ), {
 
 	constructor: THREE.AssimpLoader,
-
-	crossOrigin: 'anonymous',
 
 	load: function ( url, onLoad, onProgress, onError ) {
 
 		var scope = this;
 
-		var path = ( scope.path === undefined ) ? THREE.LoaderUtils.extractUrlBase( url ) : scope.path;
+		var path = ( scope.path === '' ) ? THREE.LoaderUtils.extractUrlBase( url ) : scope.path;
 
 		var loader = new THREE.FileLoader( this.manager );
 		loader.setPath( scope.path );
@@ -26,30 +25,27 @@ THREE.AssimpLoader.prototype = {
 
 		loader.load( url, function ( buffer ) {
 
-			onLoad( scope.parse( buffer, path ) );
+			try {
+
+				onLoad( scope.parse( buffer, path ) );
+
+			} catch ( e ) {
+
+				if ( onError ) {
+
+					onError( e );
+
+				} else {
+
+					console.error( e );
+
+				}
+
+				scope.manager.itemError( url );
+
+			}
 
 		}, onProgress, onError );
-
-	},
-
-	setPath: function ( value ) {
-
-		this.path = value;
-		return this;
-
-	},
-
-	setResourcePath: function ( value ) {
-
-		this.resourcePath = value;
-		return this;
-
-	},
-
-	setCrossOrigin: function ( value ) {
-
-		this.crossOrigin = value;
-		return this;
 
 	},
 
@@ -74,6 +70,7 @@ THREE.AssimpLoader.prototype = {
 				return n;
 
 			};
+
 			this.lerp = function ( nextKey, time ) {
 
 				time -= this.time;
@@ -117,6 +114,7 @@ THREE.AssimpLoader.prototype = {
 				this.keys.push( key );
 
 			};
+
 			this.init = function () {
 
 				this.sortKeys();
@@ -160,6 +158,7 @@ THREE.AssimpLoader.prototype = {
 					this.addKey( new Virtulous.KeyFrame( i / fps || track[ i ].time, track[ i ].targets[ 0 ].data ) );
 
 				}
+
 				this.init();
 
 			};
@@ -521,6 +520,7 @@ THREE.AssimpLoader.prototype = {
 			}
 
 		}
+
 		function cloneTreeToBones( root, scene ) {
 
 			var rootBone = new THREE.Bone();
@@ -678,6 +678,7 @@ THREE.AssimpLoader.prototype = {
 					}
 
 				}
+
 				var skeleton = new THREE.Skeleton( allBones, offsetMatrix );
 
 				this.threeNode.bind( skeleton, new THREE.Matrix4() );
@@ -695,19 +696,19 @@ THREE.AssimpLoader.prototype = {
 				else
 					mat = new THREE.MeshLambertMaterial();
 				geometry.setIndex( new THREE.BufferAttribute( new Uint32Array( this.mIndexArray ), 1 ) );
-				geometry.addAttribute( 'position', new THREE.BufferAttribute( this.mVertexBuffer, 3 ) );
+				geometry.setAttribute( 'position', new THREE.BufferAttribute( this.mVertexBuffer, 3 ) );
 				if ( this.mNormalBuffer && this.mNormalBuffer.length > 0 )
-					geometry.addAttribute( 'normal', new THREE.BufferAttribute( this.mNormalBuffer, 3 ) );
+					geometry.setAttribute( 'normal', new THREE.BufferAttribute( this.mNormalBuffer, 3 ) );
 				if ( this.mColorBuffer && this.mColorBuffer.length > 0 )
-					geometry.addAttribute( 'color', new THREE.BufferAttribute( this.mColorBuffer, 4 ) );
+					geometry.setAttribute( 'color', new THREE.BufferAttribute( this.mColorBuffer, 4 ) );
 				if ( this.mTexCoordsBuffers[ 0 ] && this.mTexCoordsBuffers[ 0 ].length > 0 )
-					geometry.addAttribute( 'uv', new THREE.BufferAttribute( new Float32Array( this.mTexCoordsBuffers[ 0 ] ), 2 ) );
+					geometry.setAttribute( 'uv', new THREE.BufferAttribute( new Float32Array( this.mTexCoordsBuffers[ 0 ] ), 2 ) );
 				if ( this.mTexCoordsBuffers[ 1 ] && this.mTexCoordsBuffers[ 1 ].length > 0 )
-					geometry.addAttribute( 'uv1', new THREE.BufferAttribute( new Float32Array( this.mTexCoordsBuffers[ 1 ] ), 2 ) );
+					geometry.setAttribute( 'uv1', new THREE.BufferAttribute( new Float32Array( this.mTexCoordsBuffers[ 1 ] ), 2 ) );
 				if ( this.mTangentBuffer && this.mTangentBuffer.length > 0 )
-					geometry.addAttribute( 'tangents', new THREE.BufferAttribute( this.mTangentBuffer, 3 ) );
+					geometry.setAttribute( 'tangents', new THREE.BufferAttribute( this.mTangentBuffer, 3 ) );
 				if ( this.mBitangentBuffer && this.mBitangentBuffer.length > 0 )
-					geometry.addAttribute( 'bitangents', new THREE.BufferAttribute( this.mBitangentBuffer, 3 ) );
+					geometry.setAttribute( 'bitangents', new THREE.BufferAttribute( this.mBitangentBuffer, 3 ) );
 				if ( this.mBones.length > 0 ) {
 
 					var weights = [];
@@ -760,8 +761,8 @@ THREE.AssimpLoader.prototype = {
 
 					}
 
-					geometry.addAttribute( 'skinWeight', new THREE.BufferAttribute( new Float32Array( _weights ), BONESPERVERT ) );
-					geometry.addAttribute( 'skinIndex', new THREE.BufferAttribute( new Float32Array( _bones ), BONESPERVERT ) );
+					geometry.setAttribute( 'skinWeight', new THREE.BufferAttribute( new Float32Array( _weights ), BONESPERVERT ) );
+					geometry.setAttribute( 'skinIndex', new THREE.BufferAttribute( new Float32Array( _bones ), BONESPERVERT ) );
 
 				}
 
@@ -980,6 +981,7 @@ THREE.AssimpLoader.prototype = {
 			};
 
 		}
+
 		var namePropMapping = {
 
 			"?mat.name": "name",
@@ -1772,6 +1774,7 @@ THREE.AssimpLoader.prototype = {
 				}
 
 			}
+
 			// write faces. There are no floating-point calculations involved
 			// in these, so we can write a simple hash over the face data
 			// to the dump file. We generate a single 32 Bit hash for 512 faces
@@ -1837,6 +1840,7 @@ THREE.AssimpLoader.prototype = {
 				}
 
 			}
+
 			// write bones
 			if ( mesh.mNumBones ) {
 
@@ -1899,7 +1903,7 @@ THREE.AssimpLoader.prototype = {
 			}
 
 		}
-		// -----------------------------------------------------------------------------------
+
 		function ReadBinaryNodeAnim( stream, nd ) {
 
 			var chunkID = Read_uint32_t( stream );
@@ -1965,7 +1969,7 @@ THREE.AssimpLoader.prototype = {
 			}
 
 		}
-		// -----------------------------------------------------------------------------------
+
 		function ReadBinaryAnim( stream, anim ) {
 
 			var chunkID = Read_uint32_t( stream );
@@ -2019,7 +2023,7 @@ THREE.AssimpLoader.prototype = {
 			}
 
 		}
-		// -----------------------------------------------------------------------------------
+
 		function ReadBinaryLight( stream, l ) {
 
 			var chunkID = Read_uint32_t( stream );
@@ -2049,7 +2053,7 @@ THREE.AssimpLoader.prototype = {
 			}
 
 		}
-		// -----------------------------------------------------------------------------------
+
 		function ReadBinaryCamera( stream, cam ) {
 
 			var chunkID = Read_uint32_t( stream );
@@ -2096,6 +2100,7 @@ THREE.AssimpLoader.prototype = {
 				}
 
 			}
+
 			// Read materials
 			if ( scene.mNumMaterials ) {
 
@@ -2109,6 +2114,7 @@ THREE.AssimpLoader.prototype = {
 				}
 
 			}
+
 			// Read all animations
 			if ( scene.mNumAnimations ) {
 
@@ -2122,6 +2128,7 @@ THREE.AssimpLoader.prototype = {
 				}
 
 			}
+
 			// Read all textures
 			if ( scene.mNumTextures ) {
 
@@ -2135,6 +2142,7 @@ THREE.AssimpLoader.prototype = {
 				}
 
 			}
+
 			// Read lights
 			if ( scene.mNumLights ) {
 
@@ -2148,6 +2156,7 @@ THREE.AssimpLoader.prototype = {
 				}
 
 			}
+
 			// Read cameras
 			if ( scene.mNumCameras ) {
 
@@ -2163,6 +2172,7 @@ THREE.AssimpLoader.prototype = {
 			}
 
 		}
+
 		var aiOrigin_CUR = 0;
 		var aiOrigin_BEG = 1;
 
@@ -2176,6 +2186,7 @@ THREE.AssimpLoader.prototype = {
 					stream.readOffset += off;
 
 				}
+
 				if ( ori == aiOrigin_BEG ) {
 
 					stream.readOffset = off;
@@ -2274,4 +2285,4 @@ THREE.AssimpLoader.prototype = {
 
 	}
 
-};
+} );

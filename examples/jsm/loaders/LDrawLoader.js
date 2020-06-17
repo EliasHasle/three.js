@@ -10,12 +10,12 @@ import {
 	BufferAttribute,
 	BufferGeometry,
 	Color,
-	DefaultLoadingManager,
 	FileLoader,
 	Float32BufferAttribute,
 	Group,
 	LineBasicMaterial,
 	LineSegments,
+	Loader,
 	Matrix4,
 	Mesh,
 	MeshPhongMaterial,
@@ -95,10 +95,10 @@ var LDrawLoader = ( function () {
 		#include <color_fragment>
 		outgoingLight = diffuseColor.rgb; // simple shader
 		gl_FragColor = vec4( outgoingLight, diffuseColor.a );
-		#include <premultiplied_alpha_fragment>
 		#include <tonemapping_fragment>
 		#include <encodings_fragment>
 		#include <fog_fragment>
+		#include <premultiplied_alpha_fragment>
 	}
 	`;
 
@@ -468,11 +468,11 @@ var LDrawLoader = ( function () {
 
 		}
 
-		bufferGeometry.addAttribute( 'position', new Float32BufferAttribute( positions, 3 ) );
+		bufferGeometry.setAttribute( 'position', new Float32BufferAttribute( positions, 3 ) );
 
 		if ( elementSize === 3 ) {
 
-			bufferGeometry.addAttribute( 'normal', new Float32BufferAttribute( normals, 3 ) );
+			bufferGeometry.setAttribute( 'normal', new Float32BufferAttribute( normals, 3 ) );
 
 		}
 
@@ -526,9 +526,9 @@ var LDrawLoader = ( function () {
 
 			}
 
-			bufferGeometry.addAttribute( 'control0', new BufferAttribute( controlArray0, 3, false ) );
-			bufferGeometry.addAttribute( 'control1', new BufferAttribute( controlArray1, 3, false ) );
-			bufferGeometry.addAttribute( 'direction', new BufferAttribute( directionArray, 3, false ) );
+			bufferGeometry.setAttribute( 'control0', new BufferAttribute( controlArray0, 3, false ) );
+			bufferGeometry.setAttribute( 'control1', new BufferAttribute( controlArray1, 3, false ) );
+			bufferGeometry.setAttribute( 'direction', new BufferAttribute( directionArray, 3, false ) );
 
 		}
 
@@ -540,15 +540,13 @@ var LDrawLoader = ( function () {
 
 	function LDrawLoader( manager ) {
 
-		this.manager = ( manager !== undefined ) ? manager : DefaultLoadingManager;
+		Loader.call( this, manager );
 
 		// This is a stack of 'parse scopes' with one level per subobject loaded file.
 		// Each level contains a material lib and also other runtime variables passed between parent and child subobjects
 		// When searching for a material code, the stack is read from top of the stack to bottom
 		// Each material library is an object map keyed by colour codes.
 		this.parseScopesStack = null;
-
-		this.path = '';
 
 		// Array of THREE.Material
 		this.materials = [];
@@ -594,7 +592,7 @@ var LDrawLoader = ( function () {
 	LDrawLoader.FILE_LOCATION_TRY_ABSOLUTE = 5;
 	LDrawLoader.FILE_LOCATION_NOT_FOUND = 6;
 
-	LDrawLoader.prototype = {
+	LDrawLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 
 		constructor: LDrawLoader,
 
@@ -623,14 +621,6 @@ var LDrawLoader = ( function () {
 			// Async parse.  This function calls onParse with the parsed THREE.Object3D as parameter
 
 			this.processObject( text, onLoad, null, path );
-
-		},
-
-		setPath: function ( value ) {
-
-			this.path = value;
-
-			return this;
 
 		},
 
@@ -853,6 +843,7 @@ var LDrawLoader = ( function () {
 							throw 'LDrawLoader: Invalid colour while parsing material' + lineParser.getLineNumberString() + ".";
 
 						}
+
 						break;
 
 					case "EDGE":
@@ -876,6 +867,7 @@ var LDrawLoader = ( function () {
 							edgeMaterial = edgeMaterial.userData.edgeMaterial;
 
 						}
+
 						break;
 
 					case 'ALPHA':
@@ -1058,8 +1050,6 @@ var LDrawLoader = ( function () {
 
 		objectParse: function ( text ) {
 
-			//console.time( 'LDrawLoader' );
-
 			// Retrieve data from the parent parse scope
 			var parentParseScope = this.getParentParseScope();
 
@@ -1114,6 +1104,7 @@ var LDrawLoader = ( function () {
 					colourCode = mainColourCode;
 
 				}
+
 				if ( forEdge && colourCode === '24' ) {
 
 					colourCode = mainEdgeColourCode;
@@ -1204,40 +1195,36 @@ var LDrawLoader = ( function () {
 
 									type = lp.getToken();
 
-									if ( ! parsingEmbeddedFiles ) {
+									currentParseScope.triangles = [];
+									currentParseScope.lineSegments = [];
+									currentParseScope.conditionalSegments = [];
+									currentParseScope.type = type;
 
-										currentParseScope.triangles = [];
-										currentParseScope.lineSegments = [];
-										currentParseScope.conditionalSegments = [];
-										currentParseScope.type = type;
+									var isRoot = ! parentParseScope.isFromParse;
+									if ( isRoot || scope.separateObjects && ! isPrimitiveType( type ) ) {
 
-										var isRoot = ! parentParseScope.isFromParse;
-										if ( isRoot || scope.separateObjects && ! isPrimitiveType( type ) ) {
+										currentParseScope.groupObject = new Group();
 
-											currentParseScope.groupObject = new Group();
-
-											currentParseScope.groupObject.userData.startingConstructionStep = currentParseScope.startingConstructionStep;
-
-										}
-
-										// If the scale of the object is negated then the triangle winding order
-										// needs to be flipped.
-										var matrix = currentParseScope.matrix;
-										if (
-											matrix.determinant() < 0 && (
-												scope.separateObjects && isPrimitiveType( type ) ||
-												! scope.separateObjects
-											) ) {
-
-											currentParseScope.inverted = ! currentParseScope.inverted;
-
-										}
-
-										triangles = currentParseScope.triangles;
-										lineSegments = currentParseScope.lineSegments;
-										conditionalSegments = currentParseScope.conditionalSegments;
+										currentParseScope.groupObject.userData.startingConstructionStep = currentParseScope.startingConstructionStep;
 
 									}
+
+									// If the scale of the object is negated then the triangle winding order
+									// needs to be flipped.
+									var matrix = currentParseScope.matrix;
+									if (
+										matrix.determinant() < 0 && (
+											scope.separateObjects && isPrimitiveType( type ) ||
+											! scope.separateObjects
+										) ) {
+
+										currentParseScope.inverted = ! currentParseScope.inverted;
+
+									}
+
+									triangles = currentParseScope.triangles;
+									lineSegments = currentParseScope.lineSegments;
+									conditionalSegments = currentParseScope.conditionalSegments;
 
 									break;
 
@@ -1253,6 +1240,7 @@ var LDrawLoader = ( function () {
 										console.warn( 'LDrawLoader: Error parsing material' + lp.getLineNumberString() );
 
 									}
+
 									break;
 
 								case '!CATEGORY':
@@ -1278,6 +1266,7 @@ var LDrawLoader = ( function () {
 										} );
 
 									}
+
 									break;
 
 								case 'FILE':
@@ -1730,8 +1719,8 @@ var LDrawLoader = ( function () {
 				var isRoot = ! parentParseScope.isFromParse;
 				if ( scope.separateObjects && ! isPrimitiveType( parseScope.type ) || isRoot ) {
 
-
 					const objGroup = parseScope.groupObject;
+
 					if ( parseScope.triangles.length > 0 ) {
 
 						objGroup.add( createObject( parseScope.triangles, 3 ) );
@@ -1775,12 +1764,14 @@ var LDrawLoader = ( function () {
 					for ( var i = 0, l = lineSegments.length; i < l; i ++ ) {
 
 						var ls = lineSegments[ i ];
+
 						if ( separateObjects ) {
 
 							ls.v0.applyMatrix4( parseScope.matrix );
 							ls.v1.applyMatrix4( parseScope.matrix );
 
 						}
+
 						parentLineSegments.push( ls );
 
 					}
@@ -1788,6 +1779,7 @@ var LDrawLoader = ( function () {
 					for ( var i = 0, l = conditionalSegments.length; i < l; i ++ ) {
 
 						var os = conditionalSegments[ i ];
+
 						if ( separateObjects ) {
 
 							os.v0.applyMatrix4( parseScope.matrix );
@@ -1796,6 +1788,7 @@ var LDrawLoader = ( function () {
 							os.c1.applyMatrix4( parseScope.matrix );
 
 						}
+
 						parentConditionalSegments.push( os );
 
 					}
@@ -1803,6 +1796,7 @@ var LDrawLoader = ( function () {
 					for ( var i = 0, l = triangles.length; i < l; i ++ ) {
 
 						var tri = triangles[ i ];
+
 						if ( separateObjects ) {
 
 							tri.v0 = tri.v0.clone().applyMatrix4( parseScope.matrix );
@@ -1814,6 +1808,7 @@ var LDrawLoader = ( function () {
 							tri.faceNormal.crossVectors( tempVec0, tempVec1 ).normalize();
 
 						}
+
 						parentTriangles.push( tri );
 
 					}
@@ -1906,6 +1901,7 @@ var LDrawLoader = ( function () {
 							newLocationState = LDrawLoader.FILE_LOCATION_AS_IS;
 
 						}
+
 						break;
 
 					case LDrawLoader.FILE_LOCATION_NOT_FOUND:
@@ -1965,7 +1961,7 @@ var LDrawLoader = ( function () {
 
 		}
 
-	};
+	} );
 
 	return LDrawLoader;
 

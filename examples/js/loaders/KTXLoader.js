@@ -1,3 +1,4 @@
+console.warn( "THREE.KTXLoader: As part of the transition to ES6 Modules, the files in 'examples/js' were deprecated in May 2020 (r117) and will be deleted in December 2020 (r124). You can find more information about developing using ES6 Modules in https://threejs.org/docs/index.html#manual/en/introduction/Import-via-modules." );
 /**
  * @author amakaseev / https://github.com/amakaseev
  *
@@ -12,27 +13,28 @@ THREE.KTXLoader = function ( manager ) {
 
 	THREE.CompressedTextureLoader.call( this, manager );
 
-	this._parser = THREE.KTXLoader.parse;
-
 };
 
-THREE.KTXLoader.prototype = Object.create( THREE.CompressedTextureLoader.prototype );
-THREE.KTXLoader.prototype.constructor = THREE.KTXLoader;
+THREE.KTXLoader.prototype = Object.assign( Object.create( THREE.CompressedTextureLoader.prototype ), {
 
-THREE.KTXLoader.parse = function ( buffer, loadMipmaps ) {
+	constructor: THREE.KTXLoader,
 
-	var ktx = new KhronosTextureContainer( buffer, 1 );
+	parse: function ( buffer, loadMipmaps ) {
 
-	return {
-		mipmaps: ktx.mipmaps( loadMipmaps ),
-		width: ktx.pixelWidth,
-		height: ktx.pixelHeight,
-		format: ktx.glInternalFormat,
-		isCubemap: ktx.numberOfFaces === 6,
-		mipmapCount: ktx.numberOfMipmapLevels
-	};
+		var ktx = new KhronosTextureContainer( buffer, 1 );
 
-};
+		return {
+			mipmaps: ktx.mipmaps( loadMipmaps ),
+			width: ktx.pixelWidth,
+			height: ktx.pixelHeight,
+			format: ktx.glInternalFormat,
+			isCubemap: ktx.numberOfFaces === 6,
+			mipmapCount: ktx.numberOfMipmapLevels
+		};
+
+	}
+
+} );
 
 var KhronosTextureContainer = ( function () {
 
@@ -99,24 +101,28 @@ var KhronosTextureContainer = ( function () {
 			this.numberOfMipmapLevels = Math.max( 1, this.numberOfMipmapLevels );
 
 		}
+
 		if ( this.pixelHeight === 0 || this.pixelDepth !== 0 ) {
 
 			console.warn( 'only 2D textures currently supported' );
 			return;
 
 		}
+
 		if ( this.numberOfArrayElements !== 0 ) {
 
 			console.warn( 'texture arrays not currently supported' );
 			return;
 
 		}
+
 		if ( this.numberOfFaces !== facesExpected ) {
 
 			console.warn( 'number of faces expected' + facesExpected + ', but found ' + this.numberOfFaces );
 			return;
 
 		}
+
 		// we now have a completely validated file, so could use existence of loadType as success
 		// would need to make this more elaborate & adjust checks above to support more than one load type
 		this.loadType = KhronosTextureContainer.COMPRESSED_2D;
@@ -149,6 +155,7 @@ var KhronosTextureContainer = ( function () {
 				dataOffset += 3 - ( ( imageSize + 3 ) % 4 ); // add padding for odd sized image
 
 			}
+
 			width = Math.max( 1.0, width * 0.5 );
 			height = Math.max( 1.0, height * 0.5 );
 

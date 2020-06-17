@@ -25,7 +25,7 @@
  * For binary STLs geometry might contain colors for vertices. To use it:
  *  // use the same code to load STL as above
  *  if (geometry.hasColors) {
- *    material = new THREE.MeshPhongMaterial({ opacity: geometry.alpha, vertexColors: THREE.VertexColors });
+ *    material = new THREE.MeshPhongMaterial({ opacity: geometry.alpha, vertexColors: true });
  *  } else { .... }
  *  var mesh = new THREE.Mesh( geometry, material );
  *
@@ -58,9 +58,9 @@
 import {
 	BufferAttribute,
 	BufferGeometry,
-	DefaultLoadingManager,
 	FileLoader,
 	Float32BufferAttribute,
+	Loader,
 	LoaderUtils,
 	Vector3
 } from "../../../build/three.module.js";
@@ -68,11 +68,11 @@ import {
 
 var STLLoader = function ( manager ) {
 
-	this.manager = ( manager !== undefined ) ? manager : DefaultLoadingManager;
+	Loader.call( this, manager );
 
 };
 
-STLLoader.prototype = {
+STLLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 
 	constructor: STLLoader,
 
@@ -89,24 +89,23 @@ STLLoader.prototype = {
 
 				onLoad( scope.parse( text ) );
 
-			} catch ( exception ) {
+			} catch ( e ) {
 
 				if ( onError ) {
 
-					onError( exception );
+					onError( e );
+
+				} else {
+
+					console.error( e );
 
 				}
+
+				scope.manager.itemError( url );
 
 			}
 
 		}, onProgress, onError );
-
-	},
-
-	setPath: function ( value ) {
-
-		this.path = value;
-		return this;
 
 	},
 
@@ -257,12 +256,12 @@ STLLoader.prototype = {
 
 			}
 
-			geometry.addAttribute( 'position', new BufferAttribute( vertices, 3 ) );
-			geometry.addAttribute( 'normal', new BufferAttribute( normals, 3 ) );
+			geometry.setAttribute( 'position', new BufferAttribute( vertices, 3 ) );
+			geometry.setAttribute( 'normal', new BufferAttribute( normals, 3 ) );
 
 			if ( hasColors ) {
 
-				geometry.addAttribute( 'color', new BufferAttribute( colors, 3 ) );
+				geometry.setAttribute( 'color', new BufferAttribute( colors, 3 ) );
 				geometry.hasColors = true;
 				geometry.alpha = alpha;
 
@@ -290,7 +289,6 @@ STLLoader.prototype = {
 
 			var result;
 
-			var groupVertexes = [];
 			var groupCount = 0;
 			var startVertex = 0;
 			var endVertex = 0;
@@ -346,23 +344,16 @@ STLLoader.prototype = {
 
 				}
 
-				groupVertexes.push( { startVertex: startVertex, endVertex: endVertex } );
+				var start = startVertex;
+				var count = endVertex - startVertex;
+
+				geometry.addGroup( start, count, groupCount );
 				groupCount ++;
 
 			}
 
-			geometry.addAttribute( 'position', new Float32BufferAttribute( vertices, 3 ) );
-			geometry.addAttribute( 'normal', new Float32BufferAttribute( normals, 3 ) );
-
-			if ( groupCount > 0 ) {
-
-				for ( var i = 0; i < groupVertexes.length; i ++ ) {
-
-					geometry.addGroup( groupVertexes[ i ].startVertex, groupVertexes[ i ].endVertex, i );
-
-				}
-
-			}
+			geometry.setAttribute( 'position', new Float32BufferAttribute( vertices, 3 ) );
+			geometry.setAttribute( 'normal', new Float32BufferAttribute( normals, 3 ) );
 
 			return geometry;
 
@@ -409,6 +400,6 @@ STLLoader.prototype = {
 
 	}
 
-};
+} );
 
 export { STLLoader };

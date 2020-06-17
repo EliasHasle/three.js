@@ -29,7 +29,25 @@ BufferGeometryLoader.prototype = Object.assign( Object.create( Loader.prototype 
 		loader.setPath( scope.path );
 		loader.load( url, function ( text ) {
 
-			onLoad( scope.parse( JSON.parse( text ) ) );
+			try {
+
+				onLoad( scope.parse( JSON.parse( text ) ) );
+
+			} catch ( e ) {
+
+				if ( onError ) {
+
+					onError( e );
+
+				} else {
+
+					console.error( e );
+
+				}
+
+				scope.manager.itemError( url );
+
+			}
 
 		}, onProgress, onError );
 
@@ -57,7 +75,7 @@ BufferGeometryLoader.prototype = Object.assign( Object.create( Loader.prototype 
 			var bufferAttributeConstr = attribute.isInstancedBufferAttribute ? InstancedBufferAttribute : BufferAttribute;
 			var bufferAttribute = new bufferAttributeConstr( typedArray, attribute.itemSize, attribute.normalized );
 			if ( attribute.name !== undefined ) bufferAttribute.name = attribute.name;
-			geometry.addAttribute( key, bufferAttribute );
+			geometry.setAttribute( key, bufferAttribute );
 
 		}
 
@@ -85,6 +103,14 @@ BufferGeometryLoader.prototype = Object.assign( Object.create( Loader.prototype 
 				geometry.morphAttributes[ key ] = array;
 
 			}
+
+		}
+
+		var morphTargetsRelative = json.data.morphTargetsRelative;
+
+		if ( morphTargetsRelative ) {
+
+			geometry.morphTargetsRelative = true;
 
 		}
 

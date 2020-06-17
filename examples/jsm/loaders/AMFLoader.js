@@ -21,22 +21,23 @@
 import {
 	BufferGeometry,
 	Color,
-	DefaultLoadingManager,
 	FileLoader,
 	Float32BufferAttribute,
 	Group,
+	Loader,
 	LoaderUtils,
 	Mesh,
 	MeshPhongMaterial
 } from "../../../build/three.module.js";
+import { JSZip } from "../libs/jszip.module.min.js";
 
 var AMFLoader = function ( manager ) {
 
-	this.manager = ( manager !== undefined ) ? manager : DefaultLoadingManager;
+	Loader.call( this, manager );
 
 };
 
-AMFLoader.prototype = {
+AMFLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 
 	constructor: AMFLoader,
 
@@ -49,16 +50,27 @@ AMFLoader.prototype = {
 		loader.setResponseType( 'arraybuffer' );
 		loader.load( url, function ( text ) {
 
-			onLoad( scope.parse( text ) );
+			try {
+
+				onLoad( scope.parse( text ) );
+
+			} catch ( e ) {
+
+				if ( onError ) {
+
+					onError( e );
+
+				} else {
+
+					console.error( e );
+
+				}
+
+				scope.manager.itemError( url );
+
+			}
 
 		}, onProgress, onError );
-
-	},
-
-	setPath: function ( value ) {
-
-		this.path = value;
-		return this;
 
 	},
 
@@ -78,7 +90,7 @@ AMFLoader.prototype = {
 
 				try {
 
-					zip = new JSZip( data ); // eslint-disable-line no-undef
+					zip = new JSZip( data );
 
 				} catch ( e ) {
 
@@ -308,6 +320,7 @@ AMFLoader.prototype = {
 					}
 
 				}
+
 				currVerticesNode = currVerticesNode.nextElementSibling;
 
 			}
@@ -475,11 +488,11 @@ AMFLoader.prototype = {
 					var material = objDefaultMaterial;
 
 					newGeometry.setIndex( volume.triangles );
-					newGeometry.addAttribute( 'position', vertices.clone() );
+					newGeometry.setAttribute( 'position', vertices.clone() );
 
 					if ( normals ) {
 
-						newGeometry.addAttribute( 'normal', normals.clone() );
+						newGeometry.setAttribute( 'normal', normals.clone() );
 
 					}
 
@@ -504,6 +517,6 @@ AMFLoader.prototype = {
 
 	}
 
-};
+} );
 
 export { AMFLoader };

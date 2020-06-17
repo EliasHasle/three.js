@@ -1,4 +1,4 @@
-import { _Math } from './Math.js';
+import { MathUtils } from './MathUtils.js';
 import { Quaternion } from './Quaternion.js';
 
 /**
@@ -265,6 +265,12 @@ Object.assign( Vector3.prototype, {
 
 	},
 
+	applyNormalMatrix: function ( m ) {
+
+		return this.applyMatrix3( m ).normalize();
+
+	},
+
 	applyMatrix4: function ( m ) {
 
 		var x = this.x, y = this.y, z = this.z;
@@ -496,7 +502,11 @@ Object.assign( Vector3.prototype, {
 
 	lerpVectors: function ( v1, v2, alpha ) {
 
-		return this.subVectors( v2, v1 ).multiplyScalar( alpha ).add( v1 );
+		this.x = v1.x + ( v2.x - v1.x ) * alpha;
+		this.y = v1.y + ( v2.y - v1.y ) * alpha;
+		this.z = v1.z + ( v2.z - v1.z ) * alpha;
+
+		return this;
 
 	},
 
@@ -526,11 +536,15 @@ Object.assign( Vector3.prototype, {
 
 	},
 
-	projectOnVector: function ( vector ) {
+	projectOnVector: function ( v ) {
 
-		var scalar = vector.dot( this ) / vector.lengthSq();
+		var denominator = v.lengthSq();
 
-		return this.copy( vector ).multiplyScalar( scalar );
+		if ( denominator === 0 ) return this.set( 0, 0, 0 );
+
+		var scalar = v.dot( this ) / denominator;
+
+		return this.copy( v ).multiplyScalar( scalar );
 
 	},
 
@@ -553,11 +567,15 @@ Object.assign( Vector3.prototype, {
 
 	angleTo: function ( v ) {
 
-		var theta = this.dot( v ) / ( Math.sqrt( this.lengthSq() * v.lengthSq() ) );
+		var denominator = Math.sqrt( this.lengthSq() * v.lengthSq() );
+
+		if ( denominator === 0 ) return Math.PI / 2;
+
+		var theta = this.dot( v ) / denominator;
 
 		// clamp, to handle numerical problems
 
-		return Math.acos( _Math.clamp( theta, - 1, 1 ) );
+		return Math.acos( MathUtils.clamp( theta, - 1, 1 ) );
 
 	},
 
@@ -647,6 +665,12 @@ Object.assign( Vector3.prototype, {
 
 	},
 
+	setFromMatrix3Column: function ( m, index ) {
+
+		return this.fromArray( m.elements, index * 3 );
+
+	},
+
 	equals: function ( v ) {
 
 		return ( ( v.x === this.x ) && ( v.y === this.y ) && ( v.z === this.z ) );
@@ -689,6 +713,16 @@ Object.assign( Vector3.prototype, {
 		this.x = attribute.getX( index );
 		this.y = attribute.getY( index );
 		this.z = attribute.getZ( index );
+
+		return this;
+
+	},
+
+	random: function () {
+
+		this.x = Math.random();
+		this.y = Math.random();
+		this.z = Math.random();
 
 		return this;
 

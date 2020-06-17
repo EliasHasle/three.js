@@ -31,8 +31,7 @@ export default /* glsl */`
 
 		#elif defined( ENVMAP_TYPE_CUBE_UV )
 
-			vec3 queryVec = vec3( flipEnvMap * worldNormal.x, worldNormal.yz );
-			vec4 envMapColor = textureCubeUV( envMap, queryVec, 1.0 );
+			vec4 envMapColor = textureCubeUV( envMap, worldNormal, 1.0 );
 
 		#else
 
@@ -94,14 +93,11 @@ export default /* glsl */`
 
 		#elif defined( ENVMAP_TYPE_CUBE_UV )
 
-			vec3 queryReflectVec = vec3( flipEnvMap * reflectVec.x, reflectVec.yz );
-			vec4 envMapColor = textureCubeUV( envMap, queryReflectVec, roughness );
+			vec4 envMapColor = textureCubeUV( envMap, reflectVec, roughness );
 
 		#elif defined( ENVMAP_TYPE_EQUIREC )
 
-			vec2 sampleUV;
-			sampleUV.y = asin( clamp( reflectVec.y, - 1.0, 1.0 ) ) * RECIPROCAL_PI + 0.5;
-			sampleUV.x = atan( reflectVec.z, reflectVec.x ) * RECIPROCAL_PI2 + 0.5;
+			vec2 sampleUV = equirectUv( reflectVec );
 
 			#ifdef TEXTURE_LOD_EXT
 

@@ -10,7 +10,7 @@
 
 		<div id="container"></div>
 		<div id="info">
-			<a href="http://threejs.org" target="_blank" rel="noopener">three.js</a> - Node-Based Material<br />
+			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - Node-Based Material<br />
 			<a id="serialize" href="javascript:void(0);">Serialize and apply</a>
 		</div>
 
@@ -22,9 +22,6 @@
 			import { OrbitControls } from './jsm/controls/OrbitControls.js';
 
 			import { TeapotBufferGeometry } from './jsm/geometries/TeapotBufferGeometry.js';
-
-			import { PMREMGenerator } from './jsm/pmrem/PMREMGenerator.js';
-			import { PMREMCubeUVPacker } from './jsm/pmrem/PMREMCubeUVPacker.js';
 
 			import { NodeMaterialLoader, NodeMaterialLoaderUtils } from './jsm/loaders/NodeMaterialLoader.js';
 
@@ -70,7 +67,7 @@
 
 			}
 
-			var premTexture, pmremCube, pmremGenerator, pmremCubeUVPacker, premSize = 1024;
+			var premTexture, pmremCube;
 
 			function updatePREM( textureCube ) {
 
@@ -82,23 +79,16 @@
 				var magFilter = pmremCube.magFilter;
 				var generateMipmaps = pmremCube.generateMipmaps;
 
-				pmremGenerator = new PMREMGenerator( pmremCube, undefined, premSize / 4 );
-				pmremGenerator.update( renderer );
-
-				pmremCubeUVPacker = new PMREMCubeUVPacker( pmremGenerator.cubeLods );
-				pmremCubeUVPacker.update( renderer );
+				var pmremGenerator = new THREE.PMREMGenerator( renderer );
+				premTexture = pmremGenerator.fromCubemap( pmremCube ).texture;
+				pmremGenerator.dispose();
 
 				pmremCube.minFilter = minFilter;
 				pmremCube.magFilter = magFilter;
 				pmremCube.generateMipmaps = generateMipmaps;
 				pmremCube.needsUpdate = true;
 
-				premTexture = pmremCubeUVPacker.CubeUVRenderTarget.texture;
-
 				library[ premTexture.uuid ] = premTexture;
-
-				pmremGenerator.dispose();
-				pmremCubeUVPacker.dispose();
 
 			}
 
@@ -113,7 +103,6 @@
 				];
 
 				var textureCube = new THREE.CubeTextureLoader().load( urls, updatePREM );
-				textureCube.format = THREE.RGBFormat;
 
 				library[ textureCube.uuid ] = textureCube;
 
@@ -128,7 +117,8 @@
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
-				renderer.uuid = THREE.Math.generateUUID(); // generate to library
+				renderer.uuid = THREE.MathUtils.generateUUID(); // generate to library
+				renderer.outputEncoding = THREE.sRGBEncoding;
 				container.appendChild( renderer.domElement );
 
 				scene = new THREE.Scene();
@@ -560,8 +550,6 @@
 
 						// NODES
 
-						var mask = new Nodes.SwitchNode( new Nodes.TextureNode( getTexture( "decalDiffuse" ) ), 'w' );
-
 						var normalScale = new Nodes.FloatNode( .3 );
 
 						var radiance = new Nodes.FloatNode( 1 );
@@ -579,8 +567,8 @@
 						var envNode = new Nodes.TextureCubeNode( new Nodes.TextureNode( premTexture ) );
 
 						var subSlotNode = new Nodes.SubSlotNode();
-						subSlotNode.slots['radiance'] = new Nodes.OperatorNode( radiance, envNode, Nodes.OperatorNode.MUL );
-						subSlotNode.slots['irradiance'] = new Nodes.OperatorNode( irradiance, envNode, Nodes.OperatorNode.MUL );
+						subSlotNode.slots[ 'radiance' ] = new Nodes.OperatorNode( radiance, envNode, Nodes.OperatorNode.MUL );
+						subSlotNode.slots[ 'irradiance' ] = new Nodes.OperatorNode( irradiance, envNode, Nodes.OperatorNode.MUL );
 
 						mtl.environment = subSlotNode;
 
@@ -725,6 +713,18 @@
 							updateMaterial();
 
 						}, false );
+
+						addGui( 'side', {
+							DoubleSided: THREE.DoubleSide,
+							FrontSided: THREE.FrontSide,
+							BackSided: THREE.BackSide
+						}, function ( val ) {
+
+							defaultSide = Number( val );
+
+							updateMaterial();
+
+						} );
 
 						break;
 
@@ -1145,7 +1145,7 @@
 
 						function updateUVTransform() {
 
-							texture.uv.setUvTransform( translate.x, translate.y, scale.x, scale.y, THREE.Math.degToRad( rotate ) );
+							texture.uv.setUvTransform( translate.x, translate.y, scale.x, scale.y, THREE.MathUtils.degToRad( rotate ) );
 
 						}
 
@@ -2496,7 +2496,7 @@
 
 						function biasMode( val ) {
 
-							switch( val ) {
+							switch ( val ) {
 
 								case 'prem':
 
@@ -2581,6 +2581,7 @@
 						// GUI
 
 						addGui( 'scope', {
+							view: Nodes.NormalNode.VIEW,
 							local: Nodes.NormalNode.LOCAL,
 							world: Nodes.NormalNode.WORLD
 						}, function ( val ) {
@@ -2595,42 +2596,42 @@
 
 					case 'node-reflect':
 
-							// MATERIAL
+						// MATERIAL
 
-							var node = new Nodes.ReflectNode();
+						var node = new Nodes.ReflectNode();
 
-							var nodeMaterial = new Nodes.StandardNodeMaterial();
-							nodeMaterial.environment = new Nodes.CubeTextureNode( cubemap, node );
-							nodeMaterial.roughness.value = .5;
-							nodeMaterial.metalness.value = 1;
+						var nodeMaterial = new Nodes.StandardNodeMaterial();
+						nodeMaterial.environment = new Nodes.CubeTextureNode( cubemap, node );
+						nodeMaterial.roughness.value = .5;
+						nodeMaterial.metalness.value = 1;
 
-							var standardMaterial = new THREE.MeshStandardMaterial( {
-								color: nodeMaterial.color.value,
-								side: defaultSide,
-								envMap: cubemap,
-								roughness: nodeMaterial.roughness.value,
-								metalness: 1
-							} );
+						var standardMaterial = new THREE.MeshStandardMaterial( {
+							color: nodeMaterial.color.value,
+							side: defaultSide,
+							envMap: cubemap,
+							roughness: nodeMaterial.roughness.value,
+							metalness: 1
+						} );
 
-							mtl = nodeMaterial;
+						mtl = nodeMaterial;
 
-							// GUI
+						// GUI
 
-							addGui( 'node', true, function ( val ) {
+						addGui( 'node', true, function ( val ) {
 
-								mtl = val ? nodeMaterial : standardMaterial;
-								mesh.material = mtl;
+							mtl = val ? nodeMaterial : standardMaterial;
+							mesh.material = mtl;
 
-							} );
+						} );
 
-							addGui( 'roughness', nodeMaterial.roughness.value, function ( val ) {
+						addGui( 'roughness', nodeMaterial.roughness.value, function ( val ) {
 
-								nodeMaterial.roughness.value = val;
-								standardMaterial.roughness = val;
+							nodeMaterial.roughness.value = val;
+							standardMaterial.roughness = val;
 
-							}, false, 0, 1 );
+						}, false, 0, 1 );
 
-							break;
+						break;
 
 
 					case 'varying':

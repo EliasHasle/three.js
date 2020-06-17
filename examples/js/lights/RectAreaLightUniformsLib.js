@@ -1,3 +1,4 @@
+console.warn( "THREE.RectAreaLightUniformsLib: As part of the transition to ES6 Modules, the files in 'examples/js' were deprecated in May 2020 (r117) and will be deleted in December 2020 (r124). You can find more information about developing using ES6 Modules in https://threejs.org/docs/index.html#manual/en/introduction/Import-via-modules." );
 /**
  * Uniforms library for RectAreaLight shared webgl shaders
  * @author abelnation
@@ -30,11 +31,7 @@ THREE.RectAreaLightUniformsLib = {
 		// data textures
 
 		var ltc_1 = new THREE.DataTexture( new Float32Array( LTC_MAT_1 ), 64, 64, THREE.RGBAFormat, THREE.FloatType, THREE.UVMapping, THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping, THREE.LinearFilter, THREE.NearestFilter, 1 );
-
 		var ltc_2 = new THREE.DataTexture( new Float32Array( LTC_MAT_2 ), 64, 64, THREE.RGBAFormat, THREE.FloatType, THREE.UVMapping, THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping, THREE.LinearFilter, THREE.NearestFilter, 1 );
-
-		ltc_1.needsUpdate = true;
-		ltc_2.needsUpdate = true;
 
 		THREE.UniformsLib.LTC_1 = ltc_1;
 		THREE.UniformsLib.LTC_2 = ltc_2;

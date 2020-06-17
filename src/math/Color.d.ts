@@ -14,14 +14,14 @@ export interface HSL {
  * @example
  * var color = new THREE.Color( 0xff0000 );
  *
- * @see <a href="https://github.com/mrdoob/three.js/blob/master/src/math/Color.js">src/math/Color.js</a>
+ * @see {@link https://github.com/mrdoob/three.js/blob/master/src/math/Color.js|src/math/Color.js}
  */
 export class Color {
 
 	constructor( color?: Color | string | number );
 	constructor( r: number, g: number, b: number );
 
-	isColor: boolean;
+	readonly isColor: true;
 
 	/**
 	 * Red channel value between 0 and 1. Default is 1.
@@ -38,9 +38,7 @@ export class Color {
 	 */
 	b: number;
 
-	set( color: Color ): Color;
-	set( color: number ): Color;
-	set( color: string ): Color;
+	set( color: Color | string | number ): Color;
 	setScalar( scalar: number ): Color;
 	setHex( hex: number ): Color;
 
@@ -67,6 +65,13 @@ export class Color {
 	 * @param contextStyle Color in CSS context style format.
 	 */
 	setStyle( style: string ): Color;
+
+	/**
+	 * Sets this color from a color name.
+	 * Faster than {@link Color#setStyle .setStyle()} method if you don't need the other CSS-style formats.
+	 * @param style Color name in X11 format.
+	 */
+	setColorName( style: string ): Color;
 
 	/**
 	 * Clones this color.
@@ -182,5 +187,10 @@ export class Color {
 	 * @return The provided array-like.
 	 */
 	toArray( xyz: ArrayLike<number>, offset?: number ): ArrayLike<number>;
+
+	/**
+	 * List of X11 color names.
+	 */
+	static NAMES: Record<string, number>;
 
 }

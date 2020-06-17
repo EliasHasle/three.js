@@ -1,7 +1,8 @@
 import { Vector4 } from './../math/Vector4';
 import { Texture } from './../textures/Texture';
+import { DepthTexture } from './../textures/DepthTexture';
 import { EventDispatcher } from './../core/EventDispatcher';
-import { Wrapping, TextureFilter, TextureDataType } from '../constants';
+import { Wrapping, TextureFilter, TextureDataType, TextureEncoding } from '../constants';
 
 export interface WebGLRenderTargetOptions {
 	wrapS?: Wrapping;
@@ -14,6 +15,8 @@ export interface WebGLRenderTargetOptions {
 	depthBuffer?: boolean; // true;
 	stencilBuffer?: boolean; // true;
 	generateMipmaps?: boolean; // true;
+	depthTexture?: DepthTexture;
+	encoding?: TextureEncoding;
 }
 
 export class WebGLRenderTarget extends EventDispatcher {
@@ -33,7 +36,9 @@ export class WebGLRenderTarget extends EventDispatcher {
 	texture: Texture;
 	depthBuffer: boolean;
 	stencilBuffer: boolean;
-	depthTexture: Texture;
+	depthTexture: DepthTexture;
+	readonly isWebGLRenderTarget: true;
+
 	/**
 	 * @deprecated Use {@link Texture#wrapS texture.wrapS} instead.
 	 */

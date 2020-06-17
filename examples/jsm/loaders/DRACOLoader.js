@@ -5,16 +5,13 @@
 import {
 	BufferAttribute,
 	BufferGeometry,
-	DefaultLoadingManager,
-	FileLoader
+	FileLoader,
+	Loader
 } from "../../../build/three.module.js";
 
 var DRACOLoader = function ( manager ) {
 
-	this.manager = manager || DefaultLoadingManager;
-
-	this.path = '';
-	this.crossOrigin = 'anonymous';
+	Loader.call( this, manager );
 
 	this.decoderPath = '';
 	this.decoderConfig = {};
@@ -41,25 +38,9 @@ var DRACOLoader = function ( manager ) {
 
 };
 
-DRACOLoader.prototype = {
+DRACOLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 
 	constructor: DRACOLoader,
-
-	setPath: function ( path ) {
-
-		this.path = path;
-
-		return this;
-
-	},
-
-	setCrossOrigin: function ( crossOrigin ) {
-
-		this.crossOrigin = crossOrigin;
-
-		return this;
-
-	},
 
 	setDecoderPath: function ( path ) {
 
@@ -123,7 +104,8 @@ DRACOLoader.prototype = {
 
 			var taskConfig = {
 				attributeIDs: this.defaultAttributeIDs,
-				attributeTypes: this.defaultAttributeTypes
+				attributeTypes: this.defaultAttributeTypes,
+				useUniqueIDs: false
 			};
 
 			this.decodeGeometry( buffer, taskConfig )
@@ -139,7 +121,8 @@ DRACOLoader.prototype = {
 
 		var taskConfig = {
 			attributeIDs: attributeIDs || this.defaultAttributeIDs,
-			attributeTypes: attributeTypes || this.defaultAttributeTypes
+			attributeTypes: attributeTypes || this.defaultAttributeTypes,
+			useUniqueIDs: !! attributeIDs
 		};
 
 		this.decodeGeometry( buffer, taskConfig ).then( callback );
@@ -147,10 +130,6 @@ DRACOLoader.prototype = {
 	},
 
 	decodeGeometry: function ( buffer, taskConfig ) {
-
-		var worker;
-		var taskID = this.workerNextTaskID ++;
-		var taskCost = buffer.byteLength;
 
 		// TODO: For backward-compatibility, support 'attributeTypes' objects containing
 		// references (rather than names) to typed array constructors. These must be
@@ -166,6 +145,43 @@ DRACOLoader.prototype = {
 			}
 
 		}
+
+		//
+
+		var taskKey = JSON.stringify( taskConfig );
+
+		// Check for an existing task using this buffer. A transferred buffer cannot be transferred
+		// again from this thread.
+		if ( DRACOLoader.taskCache.has( buffer ) ) {
+
+			var cachedTask = DRACOLoader.taskCache.get( buffer );
+
+			if ( cachedTask.key === taskKey ) {
+
+				return cachedTask.promise;
+
+			} else if ( buffer.byteLength === 0 ) {
+
+				// Technically, it would be possible to wait for the previous task to complete,
+				// transfer the buffer back, and decode again with the second configuration. That
+				// is complex, and I don't know of any reason to decode a Draco buffer twice in
+				// different ways, so this is left unimplemented.
+				throw new Error(
+
+					'THREE.DRACOLoader: Unable to re-decode a buffer with different ' +
+					'settings. Buffer has already been transferred.'
+
+				);
+
+			}
+
+		}
+
+		//
+
+		var worker;
+		var taskID = this.workerNextTaskID ++;
+		var taskCost = buffer.byteLength;
 
 		// Obtain a worker and assign a task, and construct a geometry instance
 		// when the task completes.
@@ -188,8 +204,10 @@ DRACOLoader.prototype = {
 			.then( ( message ) => this._createGeometry( message.geometry ) );
 
 		// Remove task from the task list.
+		// Note: replaced '.finally()' with '.catch().then()' block - iOS 11 support (#19416)
 		geometryPending
-			.finally( () => {
+			.catch( () => true )
+			.then( () => {
 
 				if ( worker && taskID ) {
 
@@ -200,6 +218,14 @@ DRACOLoader.prototype = {
 				}
 
 			} );
+
+		// Cache the task result.
+		DRACOLoader.taskCache.set( buffer, {
+
+			key: taskKey,
+			promise: geometryPending
+
+		} );
 
 		return geometryPending;
 
@@ -215,14 +241,14 @@ DRACOLoader.prototype = {
 
 		}
 
-		for ( var i = 0; i < geometryData.attributes.length; i++ ) {
+		for ( var i = 0; i < geometryData.attributes.length; i ++ ) {
 
 			var attribute = geometryData.attributes[ i ];
 			var name = attribute.name;
 			var array = attribute.array;
 			var itemSize = attribute.itemSize;
 
-			geometry.addAttribute( name, new BufferAttribute( array, itemSize ) );
+			geometry.setAttribute( name, new BufferAttribute( array, itemSize ) );
 
 		}
 
@@ -241,6 +267,14 @@ DRACOLoader.prototype = {
 			loader.load( url, resolve, undefined, reject );
 
 		} );
+
+	},
+
+	preload: function () {
+
+		this._initDecoder();
+
+		return this;
 
 	},
 
@@ -374,7 +408,8 @@ DRACOLoader.prototype = {
 		return this;
 
 	}
-};
+
+} );
 
 /* WEB WORKER */
 
@@ -391,7 +426,7 @@ DRACOLoader.DRACOWorker = function () {
 
 			case 'init':
 				decoderConfig = message.decoderConfig;
-				decoderPending = new Promise( function ( resolve, reject ) {
+				decoderPending = new Promise( function ( resolve/*, reject*/ ) {
 
 					decoderConfig.onModuleLoaded = function ( draco ) {
 
@@ -479,15 +514,32 @@ DRACOLoader.DRACOWorker = function () {
 
 		var geometry = { index: null, attributes: [] };
 
-		var numPoints = dracoGeometry.num_points();
-		var numAttributes = dracoGeometry.num_attributes();
-
-		// Add attributes of user specified unique id.
-		for (var attributeName in attributeIDs) {
+		// Gather all vertex attributes.
+		for ( var attributeName in attributeIDs ) {
 
 			var attributeType = self[ attributeTypes[ attributeName ] ];
-			var attributeId = attributeIDs[ attributeName ];
-			var attribute = decoder.GetAttributeByUniqueId( dracoGeometry, attributeId );
+
+			var attribute;
+			var attributeID;
+
+			// A Draco file may be created with default vertex attributes, whose attribute IDs
+			// are mapped 1:1 from their semantic name (POSITION, NORMAL, ...). Alternatively,
+			// a Draco file may contain a custom set of attributes, identified by known unique
+			// IDs. glTF files always do the latter, and `.drc` files typically do the former.
+			if ( taskConfig.useUniqueIDs ) {
+
+				attributeID = attributeIDs[ attributeName ];
+				attribute = decoder.GetAttributeByUniqueId( dracoGeometry, attributeID );
+
+			} else {
+
+				attributeID = decoder.GetAttributeId( dracoGeometry, draco[ attributeIDs[ attributeName ] ] );
+
+				if ( attributeID === - 1 ) continue;
+
+				attribute = decoder.GetAttribute( dracoGeometry, attributeID );
+
+			}
 
 			geometry.attributes.push( decodeAttribute( draco, decoder, dracoGeometry, attributeName, attributeType, attribute ) );
 
@@ -524,9 +576,9 @@ DRACOLoader.DRACOWorker = function () {
 
 		return geometry;
 
-	};
+	}
 
-	function decodeAttribute ( draco, decoder, dracoGeometry, attributeName, attributeType, attribute ) {
+	function decodeAttribute( draco, decoder, dracoGeometry, attributeName, attributeType, attribute ) {
 
 		var numComponents = attribute.num_components();
 		var numPoints = dracoGeometry.num_points();
@@ -545,7 +597,7 @@ DRACOLoader.DRACOWorker = function () {
 
 			case Int8Array:
 				dracoArray = new draco.DracoInt8Array();
-				decoder.GetAttributeInt8ForAllPoints( dracoGeometry, attribute, dracoArray  );
+				decoder.GetAttributeInt8ForAllPoints( dracoGeometry, attribute, dracoArray );
 				array = new Int8Array( numValues );
 				break;
 
@@ -584,7 +636,7 @@ DRACOLoader.DRACOWorker = function () {
 
 		}
 
-		for ( var i = 0; i < numValues; i++ ) {
+		for ( var i = 0; i < numValues; i ++ ) {
 
 			array[ i ] = dracoArray.GetValue( i );
 
@@ -598,9 +650,11 @@ DRACOLoader.DRACOWorker = function () {
 			itemSize: numComponents
 		};
 
-	};
+	}
 
 };
+
+DRACOLoader.taskCache = new WeakMap();
 
 /** Deprecated static methods */
 

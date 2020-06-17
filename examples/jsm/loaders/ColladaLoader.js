@@ -10,7 +10,6 @@ import {
 	BufferGeometry,
 	ClampToEdgeWrapping,
 	Color,
-	DefaultLoadingManager,
 	DirectionalLight,
 	DoubleSide,
 	Euler,
@@ -20,8 +19,9 @@ import {
 	Line,
 	LineBasicMaterial,
 	LineSegments,
+	Loader,
 	LoaderUtils,
-	Math as _Math,
+	MathUtils,
 	Matrix4,
 	Mesh,
 	MeshBasicMaterial,
@@ -45,43 +45,45 @@ import { TGALoader } from "../loaders/TGALoader.js";
 
 var ColladaLoader = function ( manager ) {
 
-	this.manager = ( manager !== undefined ) ? manager : DefaultLoadingManager;
+	Loader.call( this, manager );
 
 };
 
-ColladaLoader.prototype = {
+ColladaLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 
 	constructor: ColladaLoader,
-
-	crossOrigin: 'anonymous',
 
 	load: function ( url, onLoad, onProgress, onError ) {
 
 		var scope = this;
 
-		var path = ( scope.path === undefined ) ? LoaderUtils.extractUrlBase( url ) : scope.path;
+		var path = ( scope.path === '' ) ? LoaderUtils.extractUrlBase( url ) : scope.path;
 
 		var loader = new FileLoader( scope.manager );
 		loader.setPath( scope.path );
 		loader.load( url, function ( text ) {
 
-			onLoad( scope.parse( text, path ) );
+			try {
+
+				onLoad( scope.parse( text, path ) );
+
+			} catch ( e ) {
+
+				if ( onError ) {
+
+					onError( e );
+
+				} else {
+
+					console.error( e );
+
+				}
+
+				scope.manager.itemError( url );
+
+			}
 
 		}, onProgress, onError );
-
-	},
-
-	setPath: function ( value ) {
-
-		this.path = value;
-		return this;
-
-	},
-
-	setResourcePath: function ( value ) {
-
-		this.resourcePath = value;
-		return this;
 
 	},
 
@@ -92,13 +94,6 @@ ColladaLoader.prototype = {
 			console.warn( 'THREE.ColladaLoader: options.convertUpAxis() has been removed. Up axis is converted automatically.' );
 
 		}
-
-	},
-
-	setCrossOrigin: function ( value ) {
-
-		this.crossOrigin = value;
-		return this;
 
 	},
 
@@ -280,6 +275,8 @@ ColladaLoader.prototype = {
 				channels: {}
 			};
 
+			var hasChildren = false;
+
 			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
 				var child = xml.childNodes[ i ];
@@ -305,6 +302,12 @@ ColladaLoader.prototype = {
 						data.channels[ id ] = parseAnimationChannel( child );
 						break;
 
+					case 'animation':
+						// hierarchy of related animations
+						parseAnimation( child );
+						hasChildren = true;
+						break;
+
 					default:
 						console.log( child );
 
@@ -312,7 +315,13 @@ ColladaLoader.prototype = {
 
 			}
 
-			library.animations[ xml.getAttribute( 'id' ) ] = data;
+			if ( hasChildren === false ) {
+
+				// since 'id' attributes can be optional, it's necessary to generate a UUID for unqiue assignment
+
+				library.animations[ xml.getAttribute( 'id' ) || MathUtils.generateUUID() ] = data;
+
+			}
 
 		}
 
@@ -2119,6 +2128,7 @@ ColladaLoader.prototype = {
 							data.stride = parseInt( accessor.getAttribute( 'stride' ) );
 
 						}
+
 						break;
 
 				}
@@ -2391,6 +2401,7 @@ ColladaLoader.prototype = {
 											}
 
 										}
+
 										break;
 
 									case 'NORMAL':
@@ -2419,6 +2430,7 @@ ColladaLoader.prototype = {
 								}
 
 							}
+
 							break;
 
 						case 'NORMAL':
@@ -2449,14 +2461,14 @@ ColladaLoader.prototype = {
 
 			// build geometry
 
-			if ( position.array.length > 0 ) geometry.addAttribute( 'position', new Float32BufferAttribute( position.array, position.stride ) );
-			if ( normal.array.length > 0 ) geometry.addAttribute( 'normal', new Float32BufferAttribute( normal.array, normal.stride ) );
-			if ( color.array.length > 0 ) geometry.addAttribute( 'color', new Float32BufferAttribute( color.array, color.stride ) );
-			if ( uv.array.length > 0 ) geometry.addAttribute( 'uv', new Float32BufferAttribute( uv.array, uv.stride ) );
-			if ( uv2.array.length > 0 ) geometry.addAttribute( 'uv2', new Float32BufferAttribute( uv2.array, uv2.stride ) );
+			if ( position.array.length > 0 ) geometry.setAttribute( 'position', new Float32BufferAttribute( position.array, position.stride ) );
+			if ( normal.array.length > 0 ) geometry.setAttribute( 'normal', new Float32BufferAttribute( normal.array, normal.stride ) );
+			if ( color.array.length > 0 ) geometry.setAttribute( 'color', new Float32BufferAttribute( color.array, color.stride ) );
+			if ( uv.array.length > 0 ) geometry.setAttribute( 'uv', new Float32BufferAttribute( uv.array, uv.stride ) );
+			if ( uv2.array.length > 0 ) geometry.setAttribute( 'uv2', new Float32BufferAttribute( uv2.array, uv2.stride ) );
 
-			if ( skinIndex.array.length > 0 ) geometry.addAttribute( 'skinIndex', new Float32BufferAttribute( skinIndex.array, skinIndex.stride ) );
-			if ( skinWeight.array.length > 0 ) geometry.addAttribute( 'skinWeight', new Float32BufferAttribute( skinWeight.array, skinWeight.stride ) );
+			if ( skinIndex.array.length > 0 ) geometry.setAttribute( 'skinIndex', new Float32BufferAttribute( skinIndex.array, skinIndex.stride ) );
+			if ( skinWeight.array.length > 0 ) geometry.setAttribute( 'skinWeight', new Float32BufferAttribute( skinWeight.array, skinWeight.stride ) );
 
 			build.data = geometry;
 			build.type = primitives[ 0 ].type;
@@ -2791,7 +2803,7 @@ ColladaLoader.prototype = {
 				case 'rotate':
 					data.obj = new Vector3();
 					data.obj.fromArray( array );
-					data.angle = _Math.degToRad( array[ 3 ] );
+					data.angle = MathUtils.degToRad( array[ 3 ] );
 					break;
 
 			}
@@ -2970,7 +2982,7 @@ ColladaLoader.prototype = {
 
 				if ( targetElement ) {
 
-					// get the parent of the transfrom element
+					// get the parent of the transform element
 
 					var parentVisualElement = targetElement.parentElement;
 
@@ -3063,7 +3075,7 @@ ColladaLoader.prototype = {
 									switch ( joint.type ) {
 
 										case 'revolute':
-											matrix.multiply( m0.makeRotationAxis( axis, _Math.degToRad( value ) ) );
+											matrix.multiply( m0.makeRotationAxis( axis, MathUtils.degToRad( value ) ) );
 											break;
 
 										case 'prismatic':
@@ -3159,7 +3171,7 @@ ColladaLoader.prototype = {
 					case 'rotate':
 						var array = parseFloats( child.textContent );
 						var vector = new Vector3().fromArray( array );
-						var angle = _Math.degToRad( array[ 3 ] );
+						var angle = MathUtils.degToRad( array[ 3 ] );
 						transforms.push( {
 							sid: child.getAttribute( 'sid' ),
 							type: child.nodeName,
@@ -3266,7 +3278,7 @@ ColladaLoader.prototype = {
 
 					case 'rotate':
 						var array = parseFloats( child.textContent );
-						var angle = _Math.degToRad( array[ 3 ] );
+						var angle = MathUtils.degToRad( array[ 3 ] );
 						data.matrix.multiply( matrix.makeRotationAxis( vector.fromArray( array ), angle ) );
 						data.transforms[ child.getAttribute( 'sid' ) ] = child.nodeName;
 						break;
@@ -3618,12 +3630,7 @@ ColladaLoader.prototype = {
 
 			}
 
-			if ( object.name === '' ) {
-
-				object.name = ( type === 'JOINT' ) ? data.sid : data.name;
-
-			}
-
+			object.name = ( type === 'JOINT' ) ? data.sid : data.name;
 			object.matrix.copy( matrix );
 			object.matrix.decompose( object.position, object.quaternion, object.scale );
 
@@ -3727,6 +3734,7 @@ ColladaLoader.prototype = {
 							object = new Mesh( geometry.data, material );
 
 						}
+
 						break;
 
 				}
@@ -4008,6 +4016,6 @@ ColladaLoader.prototype = {
 
 	}
 
-};
+} );
 
 export { ColladaLoader };

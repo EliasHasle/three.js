@@ -5,13 +5,12 @@ import { Vector4 } from './../math/Vector4';
 import { Box3 } from './../math/Box3';
 import { Sphere } from './../math/Sphere';
 import { Geometry } from './Geometry';
-import { Event } from './Face3';
-import { EventDispatcher } from './EventDispatcher';
 import { MorphTarget } from './Geometry';
+
 /**
- * @see <a href="https://github.com/mrdoob/three.js/blob/master/src/core/DirectGeometry.js">src/core/DirectGeometry.js</a>
+ * @see {@link https://github.com/mrdoob/three.js/blob/master/src/core/DirectGeometry.js|src/core/DirectGeometry.js}
  */
-export class DirectGeometry extends EventDispatcher {
+export class DirectGeometry {
 
 	constructor();
 
@@ -29,8 +28,8 @@ export class DirectGeometry extends EventDispatcher {
 	morphTargets: MorphTarget[];
 	skinWeights: Vector4[];
 	skinIndices: Vector4[];
-	boundingBox: Box3;
-	boundingSphere: Sphere;
+	boundingBox: Box3 | null;
+	boundingSphere: Sphere | null;
 	verticesNeedUpdate: boolean;
 	normalsNeedUpdate: boolean;
 	colorsNeedUpdate: boolean;
@@ -42,11 +41,5 @@ export class DirectGeometry extends EventDispatcher {
 	computeGroups( geometry: Geometry ): void;
 	fromGeometry( geometry: Geometry ): DirectGeometry;
 	dispose(): void;
-
-	// EventDispatcher mixins
-	addEventListener( type: string, listener: ( event: Event ) => void ): void;
-	hasEventListener( type: string, listener: ( event: Event ) => void ): boolean;
-	removeEventListener( type: string, listener: ( event: Event ) => void ): void;
-	dispatchEvent( event: { type: string; [attachment: string]: any } ): void;
 
 }

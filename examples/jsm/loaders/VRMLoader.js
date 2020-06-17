@@ -3,7 +3,7 @@
  */
 
 import {
-	DefaultLoadingManager
+	Loader
 } from "../../../build/three.module.js";
 import { GLTFLoader } from "../loaders/GLTFLoader.js";
 
@@ -22,16 +22,15 @@ var VRMLoader = ( function () {
 
 		}
 
-		this.manager = ( manager !== undefined ) ? manager : DefaultLoadingManager;
+		Loader.call( this, manager );
+
 		this.gltfLoader = new GLTFLoader( this.manager );
 
 	}
 
-	VRMLoader.prototype = {
+	VRMLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 
 		constructor: VRMLoader,
-
-		crossOrigin: 'anonymous',
 
 		load: function ( url, onLoad, onProgress, onError ) {
 
@@ -39,36 +38,33 @@ var VRMLoader = ( function () {
 
 			this.gltfLoader.load( url, function ( gltf ) {
 
-				scope.parse( gltf, onLoad );
+				try {
+
+					scope.parse( gltf, onLoad );
+
+				} catch ( e ) {
+
+					if ( onError ) {
+
+						onError( e );
+
+					} else {
+
+						console.error( e );
+
+					}
+
+					scope.manager.itemError( url );
+
+				}
 
 			}, onProgress, onError );
 
 		},
 
-		setCrossOrigin: function ( value ) {
-
-			this.glTFLoader.setCrossOrigin( value );
-			return this;
-
-		},
-
-		setPath: function ( value ) {
-
-			this.glTFLoader.setPath( value );
-			return this;
-
-		},
-
-		setResourcePath: function ( value ) {
-
-			this.glTFLoader.setResourcePath( value );
-			return this;
-
-		},
-
 		setDRACOLoader: function ( dracoLoader ) {
 
-			this.glTFLoader.setDRACOLoader( dracoLoader );
+			this.gltfLoader.setDRACOLoader( dracoLoader );
 			return this;
 
 		},
@@ -85,7 +81,7 @@ var VRMLoader = ( function () {
 
 		}
 
-	};
+	} );
 
 	return VRMLoader;
 

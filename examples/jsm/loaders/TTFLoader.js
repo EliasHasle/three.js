@@ -9,18 +9,21 @@
  */
 
 import {
-	DefaultLoadingManager,
-	FileLoader
+	FileLoader,
+	Loader
 } from "../../../build/three.module.js";
+import { opentype } from "../libs/opentype.module.min.js";
 
 var TTFLoader = function ( manager ) {
 
-	this.manager = ( manager !== undefined ) ? manager : DefaultLoadingManager;
+	Loader.call( this, manager );
+
 	this.reversed = false;
 
 };
 
-TTFLoader.prototype = {
+
+TTFLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 
 	constructor: TTFLoader,
 
@@ -33,16 +36,27 @@ TTFLoader.prototype = {
 		loader.setResponseType( 'arraybuffer' );
 		loader.load( url, function ( buffer ) {
 
-			onLoad( scope.parse( buffer ) );
+			try {
+
+				onLoad( scope.parse( buffer ) );
+
+			} catch ( e ) {
+
+				if ( onError ) {
+
+					onError( e );
+
+				} else {
+
+					console.error( e );
+
+				}
+
+				scope.manager.itemError( url );
+
+			}
 
 		}, onProgress, onError );
-
-	},
-
-	setPath: function ( value ) {
-
-		this.path = value;
-		return this;
 
 	},
 
@@ -54,7 +68,7 @@ TTFLoader.prototype = {
 
 			var glyphs = {};
 			var scale = ( 100000 ) / ( ( font.unitsPerEm || 2048 ) * 72 );
-			
+
 			var glyphIndexMap = font.encoding.cmap.glyphIndexMap;
 			var unicodes = Object.keys( glyphIndexMap );
 
@@ -207,6 +221,6 @@ TTFLoader.prototype = {
 
 	}
 
-};
+} );
 
 export { TTFLoader };
